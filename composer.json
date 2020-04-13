@@ -1,0 +1,38 @@
+{
+    "name": "bayareawebpro/laravel-multistep-forms",
+    "description": "A simple CSV importer/ exporter for Laravel.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Alvidrez",
+            "email": "dan@bayareawebpro.com"
+        }
+    ],
+    "require": {
+        "php": "^7.1.3",
+        "illuminate/support": "^6.0|^7.0",
+        "illuminate/http": "^6.0|^7.0",
+        "illuminate/validation": "^6.0|^7.0",
+        "illuminate/session": "^6.0|^7.0",
+        "illuminate/contracts": "^6.0|^7.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^5.0",
+        "phpunit/phpunit": "^8.0",
+        "nunomaduro/larastan": "^0.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "BayAreaWebPro\\MultiStepForms\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BayAreaWebPro\\MultiStepForms\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "lint": "vendor/bin/phpstan analyse"
+    }
+}

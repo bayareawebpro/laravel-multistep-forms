@@ -1,6 +1,6 @@
 {
     "name": "bayareawebpro/laravel-multistep-forms",
-    "description": "A simple CSV importer/ exporter for Laravel.",
+    "description": "A Responsable MultiStep Form Builder for Laravel.",
     "license": "MIT",
     "authors": [
         {

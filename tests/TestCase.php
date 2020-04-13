@@ -1,6 +1,7 @@
 <?php
 namespace BayAreaWebPro\MultiStepForms\Tests;
 
+use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -31,6 +32,12 @@ abstract class TestCase extends BaseTestCase
      */
     protected function setUp(): void
     {
-        $this->setUpTheTestEnvironment();
+        parent::setUp();
+        $this->app['config']->set('view.paths', [
+            __DIR__.'/Fixtures/views'
+        ]);
+        $this->app['config']->set('app.debug', true);
+        $this->app['config']->set('app.key', Str::random(32));
+        require __DIR__.'/Fixtures/routes.php';
     }
 }

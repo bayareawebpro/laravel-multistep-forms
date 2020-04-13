@@ -61,10 +61,10 @@ class MultiStepForm implements Responsable, Arrayable
 
     protected function renderRequest()
     {
-        if(is_string($this->view)){
+        if(is_string($this->view) && !$this->request->wantsJson()){
             return View::make($this->view, array_merge($this->data, ['form' => $this]));
         }
-        return new Response($this->toArray());
+        return new Response($this->data);
     }
 
     protected function handleRequest()
@@ -77,7 +77,7 @@ class MultiStepForm implements Responsable, Arrayable
         if ($response = $this->handleCallback($this->currentStep())) {
             return $response;
         }
-        if (is_string($this->view)) {
+        if (!$this->request->wantsJson()) {
             return redirect()->back();
         }
         return new Response($this->toArray());

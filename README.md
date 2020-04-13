@@ -1,4 +1,4 @@
-# Laravel Simple CSV
+# Laravel MultiStep Forms
 
 ![](https://github.com/bayareawebpro/laravel-multistep-forms/workflows/ci/badge.svg)
 ![](https://img.shields.io/badge/License-MIT-success.svg)

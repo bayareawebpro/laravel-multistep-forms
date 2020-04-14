@@ -33,14 +33,17 @@ Route::any('my-form', function(){
         })
         // Validate Step 1
         ->addStep(1, [
-            'rules' => ['name' => 'required']
+            'rules' => ['name' => 'required'],
+            'messages' => ['name.required' => 'Your name is required silly.'],
         ])
         // Validate Step 2
         ->addStep(2, [
             'rules' => ['role' => 'required']
         ])
         // Add non-validated step...
-        ->addStep(3)->onStep(3, function (MultiStepForm $form) {
+        ->addStep(3)
+        // After step validation...
+        ->onStep(3, function (MultiStepForm $form) {
            if($form->request->get('submit') === 'reset'){
                 $form->reset();
            }else{

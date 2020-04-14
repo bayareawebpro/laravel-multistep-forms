@@ -15,12 +15,12 @@ class MultiStepForm implements Responsable, Arrayable
 {
     static $namespace = 'multistep-form';
 
+    public $callbacks;
     public $request;
     public $session;
     public $steps;
-    public $callbacks;
-    protected $data;
-    protected $view;
+    public $data;
+    public $view;
 
     public function __construct(
         Request $request,

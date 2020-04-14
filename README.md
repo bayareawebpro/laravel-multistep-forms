@@ -53,6 +53,18 @@ Route::any('my-form', function(){
 })->name('submit');
 ```
 
+### Methods
+- ```toArray```
+- ```toCollection```
+- ```addStep(int $step, array $config = [])``` //Rules, Messages & Supporting Data
+- ```onStep($step, \Closure $closure)``` // Step Number or * for all.
+- ```currentStep``` Step value
+- ```isStep(int $step = 1)``` Conditional
+- ```stepConfig(int $step = 1)``` Get step configuration
+- ```getValue(string $key, $fallback = null)``` Get form data
+- ```setValue(string $key, $value)``` Set form data
+- ```reset($data = [])``` //Form State
+
 ### Example View
 ```blade
 <h1>{{ $title }}</h1>

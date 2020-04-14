@@ -20,9 +20,7 @@ class DefaultTest extends TestCase
         $this->startSession();
         $this
             ->json('GET', route('submit'), [], ['Content-Type' => 'application/json'])
-            ->assertJsonFragment([
-                'title' => 'MultiStep Form',
-            ]);
+            ->assertOk();
     }
 
     public function test_step1_has_errors_and_redirects_back()

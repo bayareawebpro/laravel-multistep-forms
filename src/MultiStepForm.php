@@ -64,7 +64,7 @@ class MultiStepForm implements Responsable, Arrayable
         if(is_string($this->view) && !$this->request->wantsJson()){
             return View::make($this->view, array_merge($this->data, ['form' => $this]));
         }
-        return new Response(array_merge($this->data, $this->toArray()));
+        return new Response($this->toArray());
     }
 
     protected function handleRequest()

@@ -93,3 +93,71 @@ Route::any('my-form', function(){
    {{ $form->toCollection() }}
 </form>
 ```
+
+### Vue Example
+```html
+<div id="app">
+    <v-form action="{{ route('submit') }}">
+        <template v-slot:default="{form, errors, reset}">
+            <template v-if="form.form_step === 1">
+                <input v-model="form.name" placeholder="name">
+                <div v-if="errors.name">@{{ errors.name[0] }}</div>
+            </template>
+            <template v-if="form.form_step === 2">
+                <input v-model="form.role" placeholder="role">
+                <div v-if="errors.role">@{{ errors.role[0] }}</div>
+            </template>
+            <template v-if="form.form_step === 3">
+                Name: @{{ form.name }}<br>
+                Role: @{{ form.role }}<br>
+            </template>
+            <template v-if="form.form_step === 3">
+                <template v-if="form.message">
+                   @{{ form.message }}
+                </template>
+                <template v-else>
+                    <button type="submit">Save</button>
+                    <button type="button" @click="reset">Reset</button>
+                </template>
+            </template>
+            <button v-else type="submit">Continue</button>
+            <br><code v-text="form"></code>
+        </template>
+    </v-form>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js" integrity="sha256-T/f7Sju1ZfNNfBh7skWn0idlCBcI3RwdLSS4/I7NQKQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js" integrity="sha256-ngFW3UnAN0Tnm76mDuu7uUtYEcG3G5H1+zioJw3t+68=" crossorigin="anonymous"></script>
+<script>
+    new Vue({
+        el: '#app',
+        components:{
+            'v-form': {
+                props: ['action'],
+                data: ()=>({
+                    errors:{},
+                    form: {form_step: 1}
+                }),
+                template: `<form @submit.prevent="submit"><slot :reset="reset" :form="form" :errors="errors"></slot></form>`,
+                methods:{
+                    reset(){
+                        this.form.submit = 'reset'
+                        this.submit()
+                    },
+                    submit(){
+                        axios
+                            .post(this.action, this.form)
+                            .then(({data})=>this.form = data)
+                            .catch(({response})=>this.errors=response.data.errors)
+                    }
+                },
+                created(){
+                    axios
+                        .get(this.action)
+                        .then(({data})=>this.form = {...this.form,...data})
+                        .catch(({response})=>this.errors=response.data.errors)
+                }
+            },
+        }
+    })
+</script>
+```

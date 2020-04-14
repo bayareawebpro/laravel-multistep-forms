@@ -127,7 +127,7 @@ class MultiStepForm implements Responsable, Arrayable
 
     public function isStep(int $step = 1): bool
     {
-        return (bool)($this->currentStep() === $step);
+        return $this->currentStep() === $step;
     }
 
     public function getValue(string $key, $fallback = null)

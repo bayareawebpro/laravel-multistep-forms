@@ -17,6 +17,8 @@ namespace session key.  You can then hook into each step to perform an action af
 composer require bayareawebpro/laravel-multistep-forms
 ```
 
+> Example: https://imgur.com/j2c6ckK
+
 ### Example Usage
 
 ```php

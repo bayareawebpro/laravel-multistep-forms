@@ -5,13 +5,13 @@ namespace BayAreaWebPro\MultiStepForms;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Session\Store;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\Session\Store as Session;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Session\Store;
 
 class MultiStepForm implements Responsable, Arrayable
 {
@@ -166,6 +166,7 @@ class MultiStepForm implements Responsable, Arrayable
     {
         if (!$this->isStep($this->steps->count())) {
             $this->session->increment( "{$this->namespace}.form_step");
+            $this->session->save();
         }
         return $this;
     }
@@ -195,6 +196,7 @@ class MultiStepForm implements Responsable, Arrayable
         $this->session->put($this->namespace, array_merge($data, [
             'form_step' => 1
         ]));
+        $this->session->save();
         return $this;
     }
 

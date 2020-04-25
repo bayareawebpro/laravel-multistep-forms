@@ -6,32 +6,6 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class DefaultTest extends TestCase
 {
-    public function test_step1_returns_early_from_afterHook()
-    {
-        $this->startSession();
-        $this
-            ->json('POST', route('submit'),[
-                'wildcard-response' =>true,
-                'form_step' =>1,
-                'name' =>'name',
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
-            ->assertSee('onStep')
-        ;
-    }
-
-    public function test_step1_returns_early_from_beforeHook()
-    {
-        $this->startSession();
-        $this
-            ->json('POST', route('submit'),[
-                'wildcard-before' =>true,
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
-            ->assertSee('beforeStep')
-        ;
-    }
-
     public function test_step1_returns_views()
     {
         $this->startSession();
@@ -79,7 +53,6 @@ class DefaultTest extends TestCase
             ])
             ->assertSessionDoesntHaveErrors(['name', 'form_step'])
             ->assertSessionHas('test.form_step', 2)
-            ->assertSessionHas('test.wildcard', 1)
             ->assertSessionHas('test.name', 'test')
             ->assertRedirect(route('submit'));
     }
@@ -92,7 +65,6 @@ class DefaultTest extends TestCase
                 'name'      => 'test',
             ], ['Content-Type' => 'application/json'])
             ->assertJsonFragment([
-                'wildcard' => 1,
                 'name'     => 'test',
             ]);
     }
@@ -129,7 +101,6 @@ class DefaultTest extends TestCase
             ])
             ->assertSessionDoesntHaveErrors(['role', 'form_step'])
             ->assertSessionHas('test.form_step', 3)
-            ->assertSessionHas('test.wildcard', 2)
             ->assertSessionHas('test.role', 'test')
             ->assertRedirect(route('submit'));
     }
@@ -143,7 +114,6 @@ class DefaultTest extends TestCase
             ], ['Content-Type' => 'application/json'])
             ->assertJsonFragment([
                 'form_step' => 3,
-                'wildcard'  => 2,
                 'role'      => 'test',
             ]);
     }
@@ -156,7 +126,6 @@ class DefaultTest extends TestCase
             ])
             ->assertSessionDoesntHaveErrors(['form_step'])
             ->assertSessionHas('test.form_step', 3)
-            ->assertSessionHas('test.wildcard', 3)
             ->assertSee('OK');
     }
 

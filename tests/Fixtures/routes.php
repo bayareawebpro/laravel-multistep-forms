@@ -3,36 +3,50 @@
 use BayAreaWebPro\MultiStepForms\MultiStepForm;
 use Illuminate\Support\Facades\Route;
 
-Route::any('/', function(){
-    // Render a view with data.
+Route::any('/hooks', function(){
     return MultiStepForm::make('form', [
         'title' => 'MultiStep Form'
     ])
-    // Namespace the session data.
     ->namespaced('test')
-    // After every step...
     ->beforeStep('*', function (MultiStepForm $form) {
-        if($form->request->filled('wildcard-before')){
-            return response('beforeStep');
+        if($form->request->filled('before*')){
+            return response('before*');
         }
     })
-    // After every step...
+    ->beforeStep(1, function (MultiStepForm $form) {
+        if($form->request->filled('before1')){
+            return response('before1');
+        }
+    })
     ->onStep('*', function (MultiStepForm $form) {
-        $form->setValue('wildcard', $form->currentStep());
-        if($form->request->filled('wildcard-response')){
-            return response('onStep');
+        if($form->request->filled('on*')){
+            return response('on*');
         }
     })
-    // Validate Step 1
+    ->onStep(1, function (MultiStepForm $form) {
+        if($form->request->filled('on1')){
+            return response('on1');
+        }
+    })
+    ;
+})
+->middleware('web')
+->name('hooks');
+
+
+Route::any('/', function(){
+    return MultiStepForm::make('form', [
+        'title' => 'MultiStep Form'
+    ])
+    ->namespaced('test')
     ->addStep(1, [
         'rules' => ['name' => 'required']
     ])
-    // Validate Step 2
     ->addStep(2, [
         'rules' => ['role' => 'required']
     ])
-    // Add non-validated step...
-    ->addStep(3)->onStep(3, function (MultiStepForm $form) {
+    ->addStep(3)
+    ->onStep(3, function (MultiStepForm $form) {
         if($form->request->get('submit') === 'reset'){
             $form->reset();
         }else{
@@ -40,4 +54,5 @@ Route::any('/', function(){
         }
     });
 })
-->middleware('web')->name('submit');
+->middleware('web')
+->name('submit');

@@ -9,6 +9,7 @@ Route::any('/hooks', function(){
     ])
     ->namespaced('test')
     ->beforeStep('*', function (MultiStepForm $form) {
+        $form->setValue('before', true);
         if($form->request->filled('before*')){
             return response('before*');
         }

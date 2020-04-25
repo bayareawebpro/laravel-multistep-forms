@@ -278,14 +278,14 @@ class MultiStepForm implements Responsable, Arrayable
 
         $this->save($this->validate());
 
-        $this->nextStep();
-
         if ($response = (
             $this->handleAfter('*') ??
             $this->handleAfter($this->currentStep())
         )) {
             return $response;
         }
+
+        $this->nextStep();
 
         if (!$this->request->wantsJson()) {
             return redirect()->back();

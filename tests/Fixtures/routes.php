@@ -13,6 +13,9 @@ Route::any('/', function(){
     // After every step...
     ->onStep('*', function (MultiStepForm $form) {
         $form->setValue('wildcard', $form->currentStep());
+        if($form->request->filled('wildcard-response')){
+            return response('OK');
+        }
     })
     // Validate Step 1
     ->addStep(1, [

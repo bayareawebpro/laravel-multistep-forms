@@ -6,6 +6,18 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class DefaultTest extends TestCase
 {
+    public function test_can_return_from_wildcard()
+    {
+        $this->startSession();
+        $this
+            ->json('POST', route('submit'),[
+                'wildcard-response' =>true,
+                'form_step' =>1,
+                'name' =>'name',
+            ], ['Content-Type' => 'application/json'])
+            ->assertSee('OK')
+        ;
+    }
     public function test_step1_returns_views()
     {
         $this->startSession();

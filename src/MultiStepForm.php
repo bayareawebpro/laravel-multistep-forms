@@ -13,7 +13,7 @@ use Illuminate\Contracts\Support\Responsable;
 
 class MultiStepForm implements Responsable, Arrayable
 {
-    static $namespace = 'multistep-form';
+    static string $namespace = 'multistep-form';
 
     public $callbacks;
     public $request;

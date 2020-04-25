@@ -28,7 +28,11 @@ Route::any('my-form', function(){
         ])
         // Namespace the session data.
         ->namespaced('my-session-key')
-        // After every step...
+        // Before x step validation...
+        ->beforeStep('*', function (MultiStepForm $form) {
+           logger('form', $form->toArray());
+        })
+        // After x step...
         ->onStep('*', function (MultiStepForm $form) {
            logger('form', $form->toArray());
         })
@@ -59,6 +63,7 @@ Route::any('my-form', function(){
 - ```toCollection```
 - ```addStep(int $step, array $config = [])``` //Rules, Messages & Supporting Data
 - ```onStep($step, \Closure $closure)``` // Step Number or * for all.
+- ```beforeStep($step, \Closure $closure)``` // Step Number or * for all.
 - ```currentStep``` Step value
 - ```isStep(int $step = 1)``` Conditional
 - ```stepConfig(int $step = 1)``` Get step configuration

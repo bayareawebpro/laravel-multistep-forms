@@ -6,7 +6,7 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class DefaultTest extends TestCase
 {
-    public function test_can_return_from_wildcard()
+    public function test_can_return_early_from_wildcard()
     {
         $this->startSession();
         $this
@@ -18,6 +18,7 @@ class DefaultTest extends TestCase
             ->assertSee('OK')
         ;
     }
+
     public function test_step1_returns_views()
     {
         $this->startSession();

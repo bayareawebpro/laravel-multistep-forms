@@ -11,10 +11,16 @@ Route::any('/', function(){
     // Namespace the session data.
     ->namespaced('test')
     // After every step...
+    ->beforeStep('*', function (MultiStepForm $form) {
+        if($form->request->filled('wildcard-before')){
+            return response('beforeStep');
+        }
+    })
+    // After every step...
     ->onStep('*', function (MultiStepForm $form) {
         $form->setValue('wildcard', $form->currentStep());
         if($form->request->filled('wildcard-response')){
-            return response('OK');
+            return response('onStep');
         }
     })
     // Validate Step 1

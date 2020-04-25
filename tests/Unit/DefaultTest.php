@@ -6,7 +6,7 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class DefaultTest extends TestCase
 {
-    public function test_can_return_early_from_wildcard()
+    public function test_step1_returns_early_from_afterHook()
     {
         $this->startSession();
         $this
@@ -15,7 +15,20 @@ class DefaultTest extends TestCase
                 'form_step' =>1,
                 'name' =>'name',
             ], ['Content-Type' => 'application/json'])
-            ->assertSee('OK')
+            ->assertOk()
+            ->assertSee('onStep')
+        ;
+    }
+
+    public function test_step1_returns_early_from_beforeHook()
+    {
+        $this->startSession();
+        $this
+            ->json('POST', route('submit'),[
+                'wildcard-before' =>true,
+            ], ['Content-Type' => 'application/json'])
+            ->assertOk()
+            ->assertSee('beforeStep')
         ;
     }
 

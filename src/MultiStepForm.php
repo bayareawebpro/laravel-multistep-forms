@@ -2,6 +2,7 @@
 
 namespace BayAreaWebPro\MultiStepForms;
 
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
@@ -10,25 +11,30 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Session\Store as Session;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Session\Store;
 
 class MultiStepForm implements Responsable, Arrayable
 {
-    static string $namespace = 'multistep-form';
-
-    public $callbacks;
-    public $request;
-    public $session;
-    public $steps;
-    public $data;
+    public string $namespace = 'multistep-form';
+    public Collection $after;
+    public Collection $before;
+    public Collection $steps;
+    public Request $request;
+    public Store $session;
+    public array $data;
     public $view;
 
-    public function __construct(
-        Request $request,
-        Session $session,
-        $data = [],
-        $view = null
-    ){
-        $this->callbacks = new Collection;
+    /**
+     * MultiStepForm constructor.
+     * @param Request $request
+     * @param Store $session
+     * @param array $data
+     * @param null $view
+     */
+    public function __construct(Request $request, Session $session, $data = [], $view = null)
+    {
+        $this->after = new Collection;
+        $this->before = new Collection;
         $this->steps = new Collection;
         $this->request = $request;
         $this->session = $session;
@@ -36,6 +42,12 @@ class MultiStepForm implements Responsable, Arrayable
         $this->data = $data;
     }
 
+    /**
+     * Make MultiStepForm Instance
+     * @param null $view
+     * @param array $data
+     * @return static
+     */
     public static function make($view = null, array $data = []): self
     {
         return app(static::class, [
@@ -44,12 +56,192 @@ class MultiStepForm implements Responsable, Arrayable
         ]);
     }
 
+    /**
+     * Set the session namespace.
+     * @param string $namespace
+     * @return $this
+     */
     public function namespaced(string $namespace): self
     {
-        static::$namespace = $namespace;
+        $this->namespace = $namespace;
         return $this;
     }
 
+
+    /**
+     * Add Before Step callback
+     * @param int|string $step
+     * @param Closure $closure
+     * @return $this
+     */
+    public function beforeStep($step, Closure $closure): self
+    {
+        $this->before->put($step, $closure);
+        return $this;
+    }
+
+    /**
+     * Add Step callback
+     * @param int|string $step
+     * @param Closure $closure
+     * @return $this
+     */
+    public function onStep($step, Closure $closure): self
+    {
+        $this->after->put($step, $closure);
+        return $this;
+    }
+
+    /**
+     * Add step configuration.
+     * @param int $step
+     * @param array $config
+     * @return $this
+     */
+    public function addStep(int $step, array $config = []): self
+    {
+        $this->steps->put($step, $config);
+        return $this;
+    }
+
+    /**
+     * Get Current Step
+     * @return int
+     */
+    public function currentStep(): int
+    {
+        return (int)$this->request->get('form_step',
+            $this->session->get("{$this->namespace}.form_step", 1)
+        );
+    }
+
+    /**
+     * Get the current step config or by number.
+     * @param int $step
+     * @return Collection
+     */
+    public function stepConfig(?int $step = null): Collection
+    {
+        return Collection::make($this->steps->get($step ?? $this->currentStep()));
+    }
+
+    /**
+     * Determine the current step.
+     * @param int $step
+     * @return bool
+     */
+    public function isStep(int $step = 1): bool
+    {
+        return $this->currentStep() === $step;
+    }
+
+    /**
+     * Get v value.
+     * @param string $key
+     * @param null $fallback
+     * @return mixed
+     */
+    public function getValue(string $key, $fallback = null)
+    {
+        return $this->session->get("{$this->namespace}.$key", $fallback);
+    }
+
+    /**
+     * Set session value.
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function setValue(string $key, $value): self
+    {
+        $this->session->put("{$this->namespace}.$key", $value);
+        return $this;
+    }
+
+    /**
+     * Increment the current step to the next.
+     * @return $this
+     */
+    protected function nextStep(): self
+    {
+        if (!$this->isStep($this->steps->count())) {
+            $this->session->increment( "{$this->namespace}.form_step");
+        }
+        return $this;
+    }
+
+    /**
+     * Save the validation data to the session.
+     * @param array $data
+     * @return $this
+     */
+    protected function save(array $data): self
+    {
+        $this->session->put($this->namespace, array_merge(
+            $this->session->get($this->namespace, []), $data,
+            ['form_step' => $this->currentStep()]
+        ));
+        $this->session->save();
+        return $this;
+    }
+
+    /**
+     * Reset session state.
+     * @param array $data
+     * @return $this
+     */
+    public function reset($data = []): self
+    {
+        $this->session->put($this->namespace, array_merge($data, [
+            'form_step' => 1
+        ]));
+        return $this;
+    }
+
+    /**
+     * Handle "Before" Callback
+     * @param int|string $key
+     * @return mixed
+     */
+    protected function handleBefore($key)
+    {
+        if ($callback = $this->before->get($key)) {
+            return $callback($this);
+        }
+    }
+
+    /**
+     * Handle "After" Callback
+     * @param int|string $key
+     * @return mixed
+     */
+    protected function handleAfter($key)
+    {
+        if ($callback = $this->after->get($key)) {
+            return $callback($this);
+        }
+    }
+
+    /**
+     * @return array
+     */
+    protected function validate(): array
+    {
+        $step = $this->stepConfig($this->currentStep());
+
+        return $this->request->validate(
+            array_merge($step->get('rules', []), [
+                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->steps->count()))],
+            ]),
+            $step->get('messages', [])
+        );
+    }
+
+    /**
+     * Create an HTTP response that represents the object.
+     * @param  \Illuminate\Http\Request|null  $request
+     * @return \Illuminate\Http\Response
+     */
     public function toResponse($request = null)
     {
         $this->request = $request ?? $this->request;
@@ -59,6 +251,10 @@ class MultiStepForm implements Responsable, Arrayable
         return $this->handleRequest();
     }
 
+    /**
+     * Render the request as a response.
+     * @return \Illuminate\Contracts\View\View|Response
+     */
     protected function renderRequest()
     {
         if(is_string($this->view) && !$this->request->wantsJson()){
@@ -67,114 +263,51 @@ class MultiStepForm implements Responsable, Arrayable
         return new Response($this->toArray());
     }
 
+    /**
+     * Handle the validated request.
+     * @return mixed
+     */
     protected function handleRequest()
     {
-        $this->validate();
+        if ($response = (
+            $this->handleBefore('*') ??
+            $this->handleBefore($this->currentStep())
+        )) {
+            return $response;
+        }
+
+        $this->save($this->validate());
+
         $this->nextStep();
-        if ($response = $this->handleCallback('*')) {
+
+        if ($response = (
+            $this->handleAfter('*') ??
+            $this->handleAfter($this->currentStep())
+        )) {
             return $response;
         }
-        if ($response = $this->handleCallback($this->currentStep())) {
-            return $response;
-        }
+
         if (!$this->request->wantsJson()) {
             return redirect()->back();
         }
         return new Response($this->toArray());
     }
 
+    /**
+     * Get the instance as an array.
+     * @return array
+     */
     public function toArray(): array
     {
-        return $this->session->get(static::$namespace, []);
+        return $this->session->get($this->namespace, []);
     }
 
+    /**
+     * Get the instance as an Collection.
+     * @return Collection
+     */
     public function toCollection(): Collection
     {
         return Collection::make($this->toArray());
-    }
-
-    public function addStep(int $step, array $config = []): self
-    {
-        $this->steps->put($step, $config);
-        return $this;
-    }
-
-    public function onStep($step, \Closure $closure): self
-    {
-        $this->callbacks->put($step, $closure);
-        return $this;
-    }
-
-    public function reset($data = []): self
-    {
-        $this->session->put(static::$namespace, array_merge($data, [
-            'form_step' => 1
-        ]));
-        return $this;
-    }
-
-    public function currentStep(): int
-    {
-        return (int)$this->request->get('form_step',
-            $this->session->get(static::$namespace . ".form_step", 1)
-        );
-    }
-
-    public function stepConfig(int $step = 1): Collection
-    {
-        return Collection::make($this->steps->get($step));
-    }
-
-    public function isStep(int $step = 1): bool
-    {
-        return $this->currentStep() === $step;
-    }
-
-    public function getValue(string $key, $fallback = null)
-    {
-        return $this->session->get(static::$namespace . ".$key", $fallback);
-    }
-
-    public function setValue(string $key, $value): self
-    {
-        $this->session->put(static::$namespace . ".$key", $value);
-        return $this;
-    }
-
-    protected function nextStep(): self
-    {
-        if (!$this->isStep($this->steps->count())) {
-            $this->session->increment(static::$namespace . '.form_step');
-        }
-        return $this;
-    }
-
-    protected function save(array $data): self
-    {
-        $this->session->put(static::$namespace, array_merge(
-            $this->session->get(static::$namespace, []), $data,
-            ['form_step' => $this->currentStep()]
-        ));
-        $this->session->save();
-        return $this;
-    }
-
-    protected function handleCallback($key)
-    {
-        if ($callback = $this->callbacks->get($key)) {
-            return $callback($this);
-        }
-    }
-
-    protected function validate(): self
-    {
-        $step = $this->stepConfig($this->currentStep());
-        $this->save($this->request->validate(
-            array_merge($step->get('rules', []), [
-                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->steps->count()))],
-            ]),
-            $step->get('messages', [])
-        ));
-        return $this;
     }
 }

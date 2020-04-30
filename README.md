@@ -70,6 +70,7 @@ Route::any('my-form', function(){
 - ```getValue(string $key, $fallback = null)``` Get form data
 - ```setValue(string $key, $value)``` Set form data
 - ```reset($data = [])``` //Form State
+- ```tap(new Invokable)``` //Extract Logic to Invokable Classes
 
 ### Example View
 ```blade

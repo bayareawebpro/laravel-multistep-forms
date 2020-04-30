@@ -67,6 +67,16 @@ class MultiStepForm implements Responsable, Arrayable
         return $this;
     }
 
+    /**
+     * Tap into instance (invokable Classes).
+     * @param Closure|mixed $closure
+     * @return $this
+     */
+    public function tap($closure)
+    {
+        $closure($this);
+        return $this;
+    }
 
     /**
      * Add Before Step callback

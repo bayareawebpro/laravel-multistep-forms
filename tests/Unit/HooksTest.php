@@ -6,6 +6,18 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class HooksTest extends TestCase
 {
+    public function test_tap()
+    {
+        $this->startSession();
+        $this
+            ->json('GET', route('hooks'),[
+                'invoke' =>true,
+            ])
+            ->assertOk()
+            ->assertSessionHas('test.invoke')
+        ;
+    }
+
     public function test_wildcard_before()
     {
         $this->startSession();

@@ -1,5 +1,6 @@
 <?php
 
+use BayAreaWebPro\MultiStepForms\Tests\Fixtures\Invoke;
 use BayAreaWebPro\MultiStepForms\MultiStepForm;
 use Illuminate\Support\Facades\Route;
 
@@ -8,6 +9,7 @@ Route::any('/hooks', function(){
         'title' => 'MultiStep Form'
     ])
     ->namespaced('test')
+    ->tap(new Invoke)
     ->beforeStep('*', function (MultiStepForm $form) {
         $form->setValue('before', true);
         if($form->request->filled('before*')){

@@ -251,9 +251,9 @@ class MultiStepForm implements Responsable, Arrayable
 
     /**
      * Highest Step
-     * @return int|mixed
+     * @return int
      */
-    public function highestStep()
+    public function highestStep(): int
     {
         return $this->steps->keys()->max(fn($value)=>$value) ?? 1;
     }

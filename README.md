@@ -8,7 +8,7 @@
 
 > https://packagist.org/packages/bayareawebpro/laravel-multistep-forms
 
-Multi-step Form Builder is a "responsable" class that can be returned from 
+Multi-step Form Builder is a "responsable" (https://laravel-news.com/laravel-5-5-responsable) class that can be returned from 
 controllers.  You can specify a view in the "make" method or it will return json.
 You can submit to the same route multiple times and it will merge each request into a 
 namespace session key.  You can then hook into each step to perform an action after validation.
@@ -47,6 +47,7 @@ Route::any('my-form', function(){
         ])
         // Add non-validated step...
         ->addStep(3)
+        ->tap(new InvokableClass)
         // After step validation...
         ->onStep(3, function (MultiStepForm $form) {
            if($form->request->get('submit') === 'reset'){

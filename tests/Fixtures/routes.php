@@ -43,7 +43,8 @@ Route::any('/', function(){
     ])
     ->namespaced('test')
     ->addStep(1, [
-        'rules' => ['name' => 'required']
+        'rules' => ['name' => 'required'],
+        'data' => ['title' => 'MultiStep Form | Step 1']
     ])
     ->addStep(2, [
         'rules' => ['role' => 'required']

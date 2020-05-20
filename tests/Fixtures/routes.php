@@ -52,7 +52,7 @@ Route::any('/', function(){
     ->addStep(3)
     ->onStep(3, function (MultiStepForm $form) {
         if($form->request->get('submit') === 'reset'){
-            $form->reset();
+            $form->reset(['reset' => true]);
         }else{
             return response('OK');
         }

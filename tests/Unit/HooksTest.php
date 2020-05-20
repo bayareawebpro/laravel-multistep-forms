@@ -8,39 +8,36 @@ class HooksTest extends TestCase
 {
     public function test_tap()
     {
-        $this->startSession();
         $this
             ->json('GET', route('hooks'),[
                 'invoke' =>true,
             ])
-            ->assertOk()
             ->assertSessionHas('test.invoke')
+            ->assertOk()
         ;
     }
 
     public function test_wildcard_before()
     {
-        $this->startSession();
         $this
             ->json('POST', route('hooks'),[
                 'before*' =>true,
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
+            ])
             ->assertSee('before*')
+            ->assertOk()
         ;
     }
 
     public function test_wildcard_on()
     {
-        $this->startSession();
         $this
             ->json('POST', route('hooks'),[
                 'on*' =>true,
                 'form_step' =>1,
                 'name' =>'name',
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
+            ])
             ->assertSee('on*')
+            ->assertOk()
         ;
     }
 
@@ -50,9 +47,9 @@ class HooksTest extends TestCase
         $this
             ->json('POST', route('hooks'),[
                 'before1' =>true,
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
+            ])
             ->assertSee('before1')
+            ->assertOk()
         ;
     }
 
@@ -64,9 +61,9 @@ class HooksTest extends TestCase
                 'on1' =>true,
                 'form_step' =>1,
                 'name' =>'name',
-            ], ['Content-Type' => 'application/json'])
-            ->assertOk()
+            ])
             ->assertSee('on1')
+            ->assertOk()
         ;
     }
 }

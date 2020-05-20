@@ -126,9 +126,7 @@ class MultiStepForm implements Responsable, Arrayable
         if($this->wasReset) return 1;
 
         // Pull from request or fallback to session.
-        return (int)$this->request->get('form_step',
-            $this->session->get("{$this->namespace}.form_step", 1)
-        );
+        return (int) $this->session->get("{$this->namespace}.form_step", 1);
     }
 
     /**
@@ -212,8 +210,7 @@ class MultiStepForm implements Responsable, Arrayable
     protected function save(array $data = []): self
     {
         $this->session->put($this->namespace, array_merge(
-            $this->session->get($this->namespace, []), $data,
-            ['form_step' => $this->currentStep()]
+            $this->session->get($this->namespace, []), $data
         ));
         return $this;
     }
@@ -255,36 +252,30 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
-     * Validate the request.
-     * @return array
+     * Handle the validated request.
+     * @return mixed
      */
-    protected function validate(): array
+    protected function handleRequest()
     {
-        $step = $this->stepConfig($this->currentStep());
-
-        return $this->request->validate(
-            array_merge($step->get('rules', []), [
-                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
-            ]),
-            $step->get('messages', [])
-        );
-    }
-
-
-    /**
-     * Create an HTTP response that represents the object.
-     * @param \Illuminate\Http\Request|null $request
-     * @return \Illuminate\Http\Response
-     */
-    public function toResponse($request = null)
-    {
-        $this->request = ($request ?? $this->request);
-
-        if ($this->request->isMethod('GET')) {
-            return $this->renderResponse();
+        if ($response = (
+            $this->handleBefore('*') ??
+            $this->handleBefore($this->currentStep())
+        )) {
+            return $response;
         }
 
-        return $this->handleRequest();
+        $this->save($this->validate());
+
+        if ($response = (
+            $this->handleAfter('*') ??
+            $this->handleAfter($this->currentStep())
+        )) {
+            return $response;
+        }
+
+        $this->nextStep();
+
+        return $this->renderResponse();
     }
 
     /**
@@ -318,31 +309,37 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
-     * Handle the validated request.
-     * @return mixed
+     * Validate the request.
+     * @return array
      */
-    protected function handleRequest()
+    protected function validate(): array
     {
-        if ($response = (
-            $this->handleBefore('*') ??
-            $this->handleBefore($this->currentStep())
-        )) {
-            return $response;
-        }
+        $step = $this->stepConfig($this->request->get('form_step', 1));
 
-        $this->save($this->validate());
-
-        if ($response = (
-            $this->handleAfter('*') ??
-            $this->handleAfter($this->currentStep())
-        )) {
-            return $response;
-        }
-
-        $this->nextStep();
-
-        return $this->renderResponse();
+        return $this->request->validate(
+            array_merge($step->get('rules', []), [
+                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
+            ]),
+            $step->get('messages', [])
+        );
     }
+
+    /**
+     * Create an HTTP response that represents the object.
+     * @param \Illuminate\Http\Request|null $request
+     * @return \Illuminate\Http\Response
+     */
+    public function toResponse($request = null)
+    {
+        $this->request = ($request ?? $this->request);
+
+        if ($this->request->isMethod('GET')) {
+            return $this->renderResponse();
+        }
+
+        return $this->handleRequest();
+    }
+
 
     /**
      * Request needs JSON response.

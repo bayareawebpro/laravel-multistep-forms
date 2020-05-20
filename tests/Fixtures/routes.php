@@ -47,7 +47,8 @@ Route::any('/', function(){
         'data' => ['title' => 'MultiStep Form | Step 1']
     ])
     ->addStep(2, [
-        'rules' => ['role' => 'required']
+        'rules' => ['role' => 'required'],
+        'data' => ['title' => 'MultiStep Form | Step 2']
     ])
     ->addStep(3)
     ->onStep(3, function (MultiStepForm $form) {

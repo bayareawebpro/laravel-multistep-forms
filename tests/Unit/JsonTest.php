@@ -35,12 +35,12 @@ class JsonTest extends TestCase
                 'name'      => 'test',
             ])
             ->assertJsonFragment([
-                'data' => [
-                    'title' => 'MultiStep Form | Step 1',
-                ],
                 'form' => [
                     'form_step' => 2,
                     'name'      => 'test',
+                ],
+                'data' => [
+                    'title' => 'MultiStep Form | Step 2',
                 ],
             ])
             ->assertOk();

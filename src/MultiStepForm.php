@@ -5,10 +5,11 @@ namespace BayAreaWebPro\MultiStepForms;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Session\Store;
 use Illuminate\Validation\Rule;
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
+
 use Illuminate\Session\Store as Session;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
@@ -16,22 +17,23 @@ use Illuminate\Contracts\Support\Responsable;
 class MultiStepForm implements Responsable, Arrayable
 {
     public string $namespace = 'multistep-form';
+    public bool $wasReset = false;
     public Collection $after;
     public Collection $before;
     public Collection $steps;
     public Request $request;
-    public Store $session;
+    public Session $session;
     public array $data;
     public $view;
 
     /**
      * MultiStepForm constructor.
      * @param Request $request
-     * @param Store $session
+     * @param Session $session
      * @param array $data
-     * @param null $view
+     * @param string|null $view
      */
-    public function __construct(Request $request, Session $session, $data = [], $view = null)
+    public function __construct(Request $request, Session $session, $data = [], ?string $view = null)
     {
         $this->after = new Collection;
         $this->before = new Collection;
@@ -44,11 +46,11 @@ class MultiStepForm implements Responsable, Arrayable
 
     /**
      * Make MultiStepForm Instance
-     * @param null $view
+     * @param null|string $view
      * @param array $data
      * @return static
      */
-    public static function make($view = null, array $data = []): self
+    public static function make(?string $view = null, array $data = []): self
     {
         return app(static::class, [
             'view' => $view,
@@ -120,6 +122,10 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function currentStep(): int
     {
+        // Override the current step when reset.
+        if($this->wasReset) return 1;
+
+        // Pull from request or fallback to session.
         return (int)$this->request->get('form_step',
             $this->session->get("{$this->namespace}.form_step", 1)
         );
@@ -174,14 +180,19 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function nextStep(): self
     {
-        if ($this->isStep(0)) {
-            $this->session->put("{$this->namespace}.form_step", 1);
-            $this->session->save();
-        } else if (!$this->isStep($this->lastStep())) {
+        if (!$this->wasReset && !$this->isStep($this->lastStep())) {
             $this->session->increment("{$this->namespace}.form_step");
-            $this->session->save();
         }
         return $this;
+    }
+
+    /**
+     * Get the Last Step Number
+     * @return int
+     */
+    public function lastStep(): int
+    {
+        return $this->steps->keys()->max(fn($value) => $value) ?? 1;
     }
 
     /**
@@ -189,13 +200,12 @@ class MultiStepForm implements Responsable, Arrayable
      * @param array $data
      * @return $this
      */
-    protected function save(array $data): self
+    protected function save(array $data = []): self
     {
         $this->session->put($this->namespace, array_merge(
             $this->session->get($this->namespace, []), $data,
             ['form_step' => $this->currentStep()]
         ));
-        $this->session->save();
         return $this;
     }
 
@@ -206,9 +216,8 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function reset($data = []): self
     {
-        $this->request->merge(['form_step' => 0]);
-        $this->session->put($this->namespace, $data);
-        $this->session->save();
+        $this->session->put($this->namespace, array_merge($data, ['form_step' => 1]));
+        $this->wasReset = true;
         return $this;
     }
 
@@ -237,6 +246,7 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
+     * Validate the request.
      * @return array
      */
     protected function validate(): array
@@ -251,14 +261,6 @@ class MultiStepForm implements Responsable, Arrayable
         );
     }
 
-    /**
-     * Highest Step
-     * @return int
-     */
-    public function lastStep(): int
-    {
-        return $this->steps->keys()->max(fn($value) => $value) ?? 1;
-    }
 
     /**
      * Create an HTTP response that represents the object.
@@ -267,26 +269,43 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function toResponse($request = null)
     {
-        $this->request = $request ?? $this->request;
+        $this->request = ($request ?? $this->request);
+
         if ($this->request->isMethod('GET')) {
             return $this->renderResponse();
         }
+
         return $this->handleRequest();
     }
 
     /**
      * Render the request as a response.
-     * @return \Illuminate\Contracts\View\View|Response
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse|Response
      */
     protected function renderResponse()
     {
-        if (is_string($this->view) && !$this->request->wantsJson()) {
-            return View::make($this->view, array_merge($this->data, ['form' => $this]));
+        // Setup the session if not already set.
+        if(!$this->getValue('form_step', false)){
+            $this->setValue('form_step', 1);
         }
-        return new Response([
-            'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
-            'form' => $this->toArray(),
-        ]);
+
+        // Render as JSON Response.
+        if($this->needsJsonResponse() || !is_string($this->view)){
+            return new Response([
+                'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
+                'form' => $this->toArray(),
+            ]);
+        }
+
+        // Redirect back after submission.
+        if (!$this->request->isMethod('GET')) {
+            return redirect()->back();
+        }
+
+        // Default to view.
+        return View::make($this->view, array_merge($this->data, [
+            'form' => $this
+        ]));
     }
 
     /**
@@ -313,10 +332,16 @@ class MultiStepForm implements Responsable, Arrayable
 
         $this->nextStep();
 
-        if (!$this->request->wantsJson()) {
-            return redirect()->back();
-        }
         return $this->renderResponse();
+    }
+
+    /**
+     * Request needs JSON response.
+     * @return bool
+     */
+    protected function needsJsonResponse(): bool
+    {
+        return $this->request->wantsJson() || $this->request->isXmlHttpRequest();
     }
 
     /**

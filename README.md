@@ -77,13 +77,13 @@ Route::any('my-form', function(){
 
 #### Methods
 
-###### `make(string $viewName, $data = [])`
+#### `make(string $viewName, $data = [])`
 
 Make a new instance of the builder class with optional view and data array.  
 
 > Note data can be defined per-step as well.
 
-###### `addStep(int $step, array $config = [])`
+#### `addStep(int $step, array $config = [])`
 
 Define the rules, messages and data for the step.
 

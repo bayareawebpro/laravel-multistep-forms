@@ -139,14 +139,6 @@ Get a field value from the session form state.
 
 Set a field value from the session form state.
 
-#### `toArray`
-
-Get the array representation of the form state.
-
-#### `toCollection`
-
-Get the array representation of the form state as a collection.
-
 #### `reset($data = [])`
 
 Reset the form state to defaults passing an optional array of data to seed.
@@ -156,6 +148,14 @@ Reset the form state to defaults passing an optional array of data to seed.
 
 Tap into the builder instance with invokeable classes that will be pass an 
 instance of the form allowing you to extract logic for reusability.
+
+#### `toCollection`
+
+Get the array representation of the form state as a collection.
+
+#### `toArray`
+
+Get the array representation of the form state.
 
 --- 
 ### Example View

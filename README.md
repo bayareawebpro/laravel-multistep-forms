@@ -107,53 +107,52 @@ MultiStepForm::make()
 ;
 ```
 
-###### `onStep($step, \Closure $closure)`
+#### `onStep($step, \Closure $closure)`
 
 Define a callback to fired **after** a step has been validated.  Step Number or * for all.
 
-###### `beforeStep($step, \Closure $closure)`
+#### `beforeStep($step, \Closure $closure)`
 
 Define a callback to fired **before** a step has been validated.  Step Number or * for all.
 
-###### `currentStep()`
+#### `currentStep()`
 
 Get the current step number.
 
-###### `isStep(int $step = 1)`
+#### `isStep(int $step = 1)`
 
 Get the current step number.
 
-###### `isLastStep()`
+#### `isLastStep()`
 
 Get the last step (highest) integer.
 
-###### `stepConfig(?int $step = null)`
+#### `stepConfig(?int $step = null)`
 
 Get the current step config, or a specific step config.
 
-###### `getValue(string $key, $fallback = null)`
+#### `getValue(string $key, $fallback = null)`
 
 Get a field value from the session form state.
 
-###### `setValue(string $key, $value)`
+#### `setValue(string $key, $value)`
 
 Set a field value from the session form state.
 
-###### `toArray`
+#### `toArray`
 
 Get the array representation of the form state.
 
-###### `toCollection`
+#### `toCollection`
 
 Get the array representation of the form state as a collection.
 
-
-###### `reset($data = [])`
+#### `reset($data = [])`
 
 Reset the form state to defaults passing an optional array of data to seed.
 
 
-###### `tap(new Invokable)`
+#### `tap(new Invokable)`
 
 Tap into the builder instance with invokeable classes that will be pass an 
 instance of the form allowing you to extract logic for reusability.

@@ -243,7 +243,7 @@ class MultiStepForm implements Responsable, Arrayable
 
         return $this->request->validate(
             array_merge($step->get('rules', []), [
-                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->highestStep()))],
+                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
             ]),
             $step->get('messages', [])
         );
@@ -253,7 +253,7 @@ class MultiStepForm implements Responsable, Arrayable
      * Highest Step
      * @return int
      */
-    public function highestStep(): int
+    public function lastStep(): int
     {
         return $this->steps->keys()->max(fn($value)=>$value) ?? 1;
     }

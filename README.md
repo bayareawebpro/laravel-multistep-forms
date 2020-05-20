@@ -194,7 +194,7 @@ Get the array representation of the form state.
     
     @endswitch
     
-    @if($form->isStep($form->lastStep()))
+    @if($form->isLastStep())
         <button type="submit" name="submit">Save</button>
         <button type="submit" name="submit" value="reset">Reset</button>
     @else

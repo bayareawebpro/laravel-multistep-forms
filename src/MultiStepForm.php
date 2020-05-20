@@ -196,6 +196,15 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
+     * Is the current step the last?
+     * @return bool
+     */
+    public function isLastStep(): bool
+    {
+        return $this->isStep($this->lastStep());
+    }
+
+    /**
      * Save the validation data to the session.
      * @param array $data
      * @return $this

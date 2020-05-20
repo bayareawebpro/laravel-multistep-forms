@@ -267,7 +267,7 @@ class MultiStepForm implements Responsable, Arrayable
     {
         $this->request = $request ?? $this->request;
         if($this->request->isMethod('GET')) {
-            return $this->renderRequest();
+            return $this->renderResponse();
         }
         return $this->handleRequest();
     }
@@ -276,12 +276,15 @@ class MultiStepForm implements Responsable, Arrayable
      * Render the request as a response.
      * @return \Illuminate\Contracts\View\View|Response
      */
-    protected function renderRequest()
+    protected function renderResponse()
     {
         if(is_string($this->view) && !$this->request->wantsJson()){
             return View::make($this->view, array_merge($this->data, ['form' => $this]));
         }
-        return new Response($this->toArray());
+        return new Response([
+            'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
+            'form' =>$this->toArray()
+        ]);
     }
 
     /**
@@ -311,7 +314,7 @@ class MultiStepForm implements Responsable, Arrayable
         if (!$this->request->wantsJson()) {
             return redirect()->back();
         }
-        return new Response($this->toArray());
+        return $this->renderResponse();
     }
 
     /**

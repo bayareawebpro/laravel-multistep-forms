@@ -11,8 +11,8 @@ class BladeTest extends TestCase
         $this
             ->get(route('submit'))
             ->assertViewIs('form')
-            ->assertViewHas('title', 'MultiStep Form')
-            ->assertSee('MultiStep Form')
+            ->assertViewHas('title', 'MultiStep Form | Step 1')
+            ->assertSee('MultiStep Form | Step 1')
             ->assertSessionHas('test.form_step', 1)
             ->assertOk();
     }

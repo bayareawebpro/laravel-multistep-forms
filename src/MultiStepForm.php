@@ -157,7 +157,7 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function getValue(string $key, $fallback = null)
     {
-        return $this->session->get("{$this->namespace}.$key", $fallback);
+        return $this->session->get("{$this->namespace}.$key", $this->session->getOldInput($key, $fallback));
     }
 
     /**
@@ -299,20 +299,29 @@ class MultiStepForm implements Responsable, Arrayable
         // Render as JSON Response.
         if ($this->needsJsonResponse() || !is_string($this->view)) {
             return new Response([
-                'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
+                'data' => $this->getData(),
                 'form' => $this->toArray(),
             ]);
         }
 
         // Redirect back after submission.
         if (!$this->request->isMethod('GET')) {
-            return redirect()->back();
+            return redirect()->back()->withInput();
         }
 
         // Default to view.
-        return View::make($this->view, array_merge($this->data, [
+        return View::make($this->view, $this->getData([
             'form' => $this,
         ]));
+    }
+
+    /**
+     * Get the configuration & view data.
+     * @return array
+     */
+    protected function getData(array $merge = []): array
+    {
+        return array_merge($this->data, $this->stepConfig()->get('data', []),$merge);
     }
 
     /**
@@ -321,7 +330,7 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function validate(): array
     {
-        $step = $this->stepConfig($this->request->get('form_step', 1));
+        $step = $this->stepConfig((int) $this->request->get('form_step', 1));
 
         return $this->request->validate(
             array_merge($step->get('rules', []), [

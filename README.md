@@ -75,7 +75,7 @@ Route::any('my-form', function(){
 })->name('submit');
 ```
 
-#### Methods
+### Methods
 
 #### `make(string $viewName, $data = [])`
 

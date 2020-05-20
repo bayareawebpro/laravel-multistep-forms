@@ -174,8 +174,11 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function nextStep(): self
     {
-        if (!$this->isStep($this->steps->count())) {
-            $this->session->increment( "{$this->namespace}.form_step");
+        if ($this->isStep(0)) {
+            $this->session->put("{$this->namespace}.form_step", 1);
+            $this->session->save();
+        } else if (!$this->isStep($this->lastStep())) {
+            $this->session->increment("{$this->namespace}.form_step");
             $this->session->save();
         }
         return $this;
@@ -203,9 +206,8 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function reset($data = []): self
     {
-        $this->session->put($this->namespace, array_merge($data, [
-            'form_step' => 1
-        ]));
+        $this->request->merge(['form_step' => 0]);
+        $this->session->put($this->namespace, $data);
         $this->session->save();
         return $this;
     }
@@ -255,18 +257,18 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function lastStep(): int
     {
-        return $this->steps->keys()->max(fn($value)=>$value) ?? 1;
+        return $this->steps->keys()->max(fn($value) => $value) ?? 1;
     }
 
     /**
      * Create an HTTP response that represents the object.
-     * @param  \Illuminate\Http\Request|null  $request
+     * @param \Illuminate\Http\Request|null $request
      * @return \Illuminate\Http\Response
      */
     public function toResponse($request = null)
     {
         $this->request = $request ?? $this->request;
-        if($this->request->isMethod('GET')) {
+        if ($this->request->isMethod('GET')) {
             return $this->renderResponse();
         }
         return $this->handleRequest();
@@ -278,12 +280,12 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function renderResponse()
     {
-        if(is_string($this->view) && !$this->request->wantsJson()){
+        if (is_string($this->view) && !$this->request->wantsJson()) {
             return View::make($this->view, array_merge($this->data, ['form' => $this]));
         }
         return new Response([
             'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
-            'form' =>$this->toArray()
+            'form' => $this->toArray(),
         ]);
     }
 

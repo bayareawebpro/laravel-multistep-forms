@@ -64,22 +64,13 @@ class JsonTest extends TestCase
                 'form_step' => 2,
                 'role'      => 'test',
             ])
+            ->assertJsonMissingValidationErrors([
+                'form_step','role'
+            ])
             ->assertJsonFragment([
                 'form_step' => 3,
                 'role'      => 'test',
             ])
-            ->assertOk();
-    }
-
-    public function test_step3_returns_ok_response_on_success()
-    {
-        $this
-            ->post(route('submit'), [
-                'form_step' => 3,
-            ])
-            ->assertSessionDoesntHaveErrors(['form_step'])
-            ->assertSessionHas('test.form_step', 3)
-            ->assertSee('OK')
             ->assertOk();
     }
 
@@ -89,20 +80,8 @@ class JsonTest extends TestCase
             ->json('POST', route('submit'), [
                 'form_step' => 3,
             ])
+            ->assertSessionHas('test.form_step', 3)
             ->assertSee('OK');
-    }
-
-    public function test_step3_resets_form_session()
-    {
-        $this
-            ->post(route('submit'), [
-                'form_step' => 3,
-                'submit'    => 'reset',
-            ])
-            ->assertSessionDoesntHaveErrors(['form_step'])
-            ->assertSessionHas('test.form_step', 1)
-            ->assertSessionHas('test.reset', true)
-            ->assertRedirect(route('submit'));
     }
 
     public function test_step3_json_resets_form_session()
@@ -114,6 +93,9 @@ class JsonTest extends TestCase
             ])
             ->assertSessionHas('test.form_step', 1)
             ->assertSessionHas('test.reset', true)
+            ->assertJsonMissingValidationErrors([
+                'name', 'form_step',
+            ])
             ->assertJsonFragment([
                 'form' => [
                     'form_step' => 1,

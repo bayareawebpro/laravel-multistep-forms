@@ -123,10 +123,10 @@ class MultiStepForm implements Responsable, Arrayable
     public function currentStep(): int
     {
         // Override the current step when reset.
-        if($this->wasReset) return 1;
+        if ($this->wasReset) return 1;
 
         // Pull from request or fallback to session.
-        return (int) $this->session->get("{$this->namespace}.form_step", 1);
+        return (int)$this->session->get("{$this->namespace}.form_step", 1);
     }
 
     /**
@@ -257,23 +257,30 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function handleRequest()
     {
-        if ($response = (
-            $this->handleBefore('*') ??
-            $this->handleBefore($this->currentStep())
-        )) {
-            return $response;
+        if (!$this->request->isMethod('GET')) {
+
+            if ($response = (
+                $this->handleBefore('*') ??
+                $this->handleBefore($this->currentStep())
+            )) {
+                return $response;
+            }
+
+            if (!$this->wasReset) {
+
+                $this->save($this->validate());
+
+                if ($response = (
+                    $this->handleAfter('*') ??
+                    $this->handleAfter($this->currentStep())
+                )) {
+                    return $response;
+                }
+
+                $this->nextStep();
+
+            }
         }
-
-        $this->save($this->validate());
-
-        if ($response = (
-            $this->handleAfter('*') ??
-            $this->handleAfter($this->currentStep())
-        )) {
-            return $response;
-        }
-
-        $this->nextStep();
 
         return $this->renderResponse();
     }
@@ -285,12 +292,12 @@ class MultiStepForm implements Responsable, Arrayable
     protected function renderResponse()
     {
         // Setup the session if not already set.
-        if(!$this->getValue('form_step', false)){
+        if (!$this->getValue('form_step', false)) {
             $this->setValue('form_step', 1);
         }
 
         // Render as JSON Response.
-        if($this->needsJsonResponse() || !is_string($this->view)){
+        if ($this->needsJsonResponse() || !is_string($this->view)) {
             return new Response([
                 'data' => array_merge($this->data, $this->stepConfig()->get('data', [])),
                 'form' => $this->toArray(),
@@ -304,7 +311,7 @@ class MultiStepForm implements Responsable, Arrayable
 
         // Default to view.
         return View::make($this->view, array_merge($this->data, [
-            'form' => $this
+            'form' => $this,
         ]));
     }
 
@@ -333,13 +340,8 @@ class MultiStepForm implements Responsable, Arrayable
     {
         $this->request = ($request ?? $this->request);
 
-        if ($this->request->isMethod('GET')) {
-            return $this->renderResponse();
-        }
-
         return $this->handleRequest();
     }
-
 
     /**
      * Request needs JSON response.

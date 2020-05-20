@@ -51,15 +51,16 @@ Route::any('/', function(){
         'data' => ['title' => 'MultiStep Form | Step 2']
     ])
     ->addStep(3)
+    ->beforeStep('*', function (MultiStepForm $form) {
+        // Test reset function.
+        if($form->request->get('submit') === 'reset'){
+            $form->reset(['reset' => true]);
+        }
+    })
     ->onStep(3, function (MultiStepForm $form) {
         // Test last step function.
         if($form->isLastStep()){
-            // Test reset function.
-            if($form->request->get('submit') === 'reset'){
-                $form->reset(['reset' => true]);
-            }else{
-                return response('OK');
-            }
+            return response('OK');
         }
     });
 })

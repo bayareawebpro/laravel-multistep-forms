@@ -68,13 +68,12 @@ class BladeTest extends TestCase
             ->assertRedirect(route('submit'));
     }
 
-    public function test_step3_success()
+    public function test_step3_unvalidated_success()
     {
         $this
             ->post(route('submit'), [
                 'form_step' => 3,
             ])
-            ->assertSessionDoesntHaveErrors(['form_step'])
             ->assertSessionHas('test.form_step', 3)
             ->assertSee('OK')
             ->assertOk();
@@ -87,7 +86,6 @@ class BladeTest extends TestCase
                 'form_step' => 3,
                 'submit'    => 'reset',
             ])
-            ->assertSessionDoesntHaveErrors(['form_step'])
             ->assertSessionHas('test.form_step', 1)
             ->assertSessionHas('test.reset', true)
             ->assertRedirect(route('submit'));

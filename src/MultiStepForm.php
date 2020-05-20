@@ -154,7 +154,7 @@ class MultiStepForm implements Responsable, Arrayable
     /**
      * Get v value.
      * @param string $key
-     * @param null $fallback
+     * @param mixed|null $fallback
      * @return mixed
      */
     public function getValue(string $key, $fallback = null)

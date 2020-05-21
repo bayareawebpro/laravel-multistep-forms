@@ -8,10 +8,12 @@
 
 > https://packagist.org/packages/bayareawebpro/laravel-multistep-forms
 
-Multi-step Form Builder is a "responsable" (https://laravel-news.com/laravel-5-5-responsable) class that can be returned from 
-controllers.  You can specify a view in the "make" method or it will return json.
-You can submit to the same route multiple times and it will merge each request into a 
-namespace session key.  You can then hook into each step to perform an action after validation.
+Multistep Form Builder is a "[responsable](https://laravel-news.com/laravel-5-5-responsable)" class that can be returned from controllers.  
+
+* Specify a view to use Blade or go headless with JSON for use with Javascript frameworks.
+* Configure the rules, messages and supporting data for each step with simple arrays.
+* Submit to the same route multiple times to merge each validated request into a namespaced session key.  
+* Hook into each step **before** or **after** validation to interact with the form or return a reponse.
 
 ## Installation
 
@@ -24,96 +26,135 @@ composer require bayareawebpro/laravel-multistep-forms
 ```php
 <?php
 
-Route::any('my-form', function(){
+use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
 
-    // Render a view with data.
-    return MultiStepForm::make('form', [
-            'title' => 'MultiStep Form'
-        ])
+// Render a view with data.
+return Form::make('my-form', [
+        'title' => 'MultiStep Form'
+    ])
 
-        // Namespace the session data.
-        ->namespaced('my-session-key')
+    // Namespace the session data.
+    ->namespaced('my-session-key')
 
-        // Before x step validation...
-        ->beforeStep('*', function (MultiStepForm $form) {
-           logger('form', $form->toArray());
-        })
+    // Before x step validation...
+    ->beforeStep('*', function (Form $form) {
+       logger('before*', $form->toArray());
+    })
 
-        // After x step...
-        ->onStep('*', function (MultiStepForm $form) {
-           logger('form', $form->toArray());
-        })
+    // After x step...
+    ->onStep('*', function (Form $form) {
+       logger('on*', $form->toArray());
+    })
 
-        // Validate Step 1
-        ->addStep(1, [
-            'rules' => ['name' => 'required'],
-            'messages' => ['name.required' => 'Your name is required silly.'],
-        ])
+    // Validate Step 1
+    ->addStep(1, [
+        'rules' => ['name' => 'required'],
+        'messages' => ['name.required' => 'Your name is required silly.'],
+    ])
 
-        // Validate Step 2
-        ->addStep(2, [
-            'rules' => ['role' => 'required|string'],
-            'data' => ['roles' => Roles::forSelection()]
-        ])
+    // Validate Step 2
+    ->addStep(2, [
+        'rules' => ['role' => 'required|string'],
+        'data' => ['roles' => Roles::forSelection()]
+    ])
 
-        // Add non-validated step...
-        ->addStep(3,[
-           'data' => ['message' => "Great Job!"]
-        ])
+    // Add non-validated step...
+    ->addStep(3,[
+       'data' => ['message' => "Great Job, Your Done!"]
+    ])
 
-        // Tap Invokable Class __invoke(MultiStepForm $form)
-        ->tap(new InvokableClass)
+    // Tap Invokable Class __invoke(Form $form)
+    ->tap(new InvokableClass)
 
-        // After step validation...
-        ->onStep(3, function (MultiStepForm $form) {
-           if($form->request->get('submit') === 'reset'){
-                $form->reset();
-           }else{
-               return response('OK');
-           }
-        });
-})->name('submit');
+    // After step validation...
+    ->onStep(3, function (Form $form) {
+       logger('onStep3', $form->toArray());
+       if($form->request->get('submit') === 'reset'){
+            $form->reset();
+       }else{
+           return response('OK');
+       }
+    })
+;
 ```
 
-### Methods
+---
 
-#### `make(string $viewName, $data = [])`
+### Make New Instance
 
-Make a new instance of the builder class with optional view and data array.  
+Make a new instance of the builder class with optional view and data array.  You 
+should always set the `namespace` for the form session to avoid conflicts with 
+other parts of your application that use the session store. 
 
-> Note data can be defined per-step as well.
-
-#### `addStep(int $step, array $config = [])`
-
-Define the rules, messages and data for the step.
+* `GET` requests will load the form state and data for the saved current step or fallback to step 1.
+* `POST`,`PUT`,`PATCH` etc.. will validate and process the request for any step and proceed to the next configured step.
 
 ```php
 <?php
 
-MultiStepForm::make()
-    ->addStep(1, [
-        'rules' => [
-            'name' => 'required|string'
-        ],
-        'messages' => [
-            'name.required' => 'Your name is required silly.'
-        ],
-        'data' => [
-            'placeholders' => [
-                'name' => 'Enter your name.'
-            ]
-        ],
-    ])
-;
+use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
+
+$form = Form::make('onboarding.start', [
+	'title' => 'Setup your account'
+]);
+
+$form->namespaced('onboarding');
 ```
 
-#### `onStep($step, \Closure $closure)`
+---
+
+### Configure Steps
+
+Define the rules, messages and data for the step. Data will be merged 
+with any view data defined in the `make` method.
+
+**Use an array**: 
+
+```php
+$form->addStep(1, [
+    'rules' => [
+        'name' => 'required|string'
+    ],
+    'messages' => [
+        'name.required' => 'Your name is required silly.'
+    ],
+    'data' => [
+        'placeholders' => [
+            'name' => 'Enter your name.'
+        ]
+    ],
+])
+```
+
+**Or use a class** that returns an array (recommended)
+
+```php
+$form->addStep(1, MyStep1::make());
+```
+
+---
+
+###Before Step Hooks
+
+Define a callback to fired **before** a step has been validated.  Step Number or * for all.
+
+> Return a response from this hook to return early before validation occurs.
+
+ `beforeStep($step, Closure $closure)`
+
+---
+
+###On Step Hooks
 
 Define a callback to fired **after** a step has been validated.  Step Number or * for all.
 
-#### `beforeStep($step, \Closure $closure)`
+> Return a response from this hook to return early before validation occours.
 
-Define a callback to fired **before** a step has been validated.  Step Number or * for all.
+`onStep($step, Closure $closure)`
+
+---
+
+###Helper Methods
 
 #### `currentStep()`
 
@@ -133,7 +174,7 @@ Get the current step config, or a specific step config.
 
 #### `getValue(string $key, $fallback = null)`
 
-Get a field value from the session form state.
+Get a field value from the form state (session / old input) or fallback to a default.
 
 #### `setValue(string $key, $value)`
 
@@ -146,8 +187,7 @@ Reset the form state to defaults passing an optional array of data to seed.
 
 #### `tap(new Invokable)`
 
-Tap into the builder instance with invokeable classes that will be pass an 
-instance of the form allowing you to extract logic for reusability.
+Tap into the builder instance with invokeable classes that will be pass an instance of the form.
 
 #### `toCollection`
 
@@ -158,7 +198,22 @@ Get the array representation of the form state as a collection.
 Get the array representation of the form state.
 
 --- 
-### Example View
+
+###Blade Example
+
+Data will be injected into the view as well as the form itself allowing you to access the form values and other helper methods.
+
+```php
+<?php
+use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
+
+$form = Form::make('my-view', $data)->namespaced('onboarding');
+```
+
+```blade
+{{ $form->toCollection() }}
+{{ $myDataKey }}
+```
 
 ```blade
 
@@ -207,7 +262,31 @@ Get the array representation of the form state.
 </form>
 ```
 
-### Vue Example
+###Vue Example
+
+Form state and data will be returned as JSON when no view is 
+specified or the request prefers JSON.  You can combine both 
+techniques to use Vue within blade as well.
+
+```php
+<?php
+
+use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
+
+$form = Form::make()->namespaced('my-session-key');
+```
+
+####JSON Response Schema
+
+The response returned will have two properties: 
+
+```json
+{
+	"form": {}
+	"data": {}
+}
+```
+
 ```html
 <div id="app">
     <v-form action="{{ route('submit') }}">

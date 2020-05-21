@@ -134,7 +134,7 @@ $form->addStep(1, MyStep1::make());
 
 ---
 
-###Before Step Hooks
+### Before Step Hooks
 
 Define a callback to fired **before** a step has been validated.  Step Number or * for all.
 
@@ -144,7 +144,7 @@ Define a callback to fired **before** a step has been validated.  Step Number or
 
 ---
 
-###On Step Hooks
+### On Step Hooks
 
 Define a callback to fired **after** a step has been validated.  Step Number or * for all.
 
@@ -154,7 +154,7 @@ Define a callback to fired **after** a step has been validated.  Step Number or 
 
 ---
 
-###Helper Methods
+### Helper Methods
 
 #### `currentStep()`
 
@@ -199,7 +199,7 @@ Get the array representation of the form state.
 
 --- 
 
-###Blade Example
+### Blade Example
 
 Data will be injected into the view as well as the form itself allowing you to access the form values and other helper methods.
 
@@ -262,7 +262,7 @@ $form = Form::make('my-view', $data)->namespaced('onboarding');
 </form>
 ```
 
-###Vue Example
+### Vue Example
 
 Form state and data will be returned as JSON when no view is 
 specified or the request prefers JSON.  You can combine both 
@@ -276,7 +276,7 @@ use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
 $form = Form::make()->namespaced('my-session-key');
 ```
 
-####JSON Response Schema
+#### JSON Response Schema
 
 The response returned will have two properties: 
 

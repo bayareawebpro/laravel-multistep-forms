@@ -125,7 +125,7 @@ Get the current step number.
 
 #### `isLastStep()`
 
-Get the last step (highest) integer.
+Determine if the current step the last step.
 
 #### `stepConfig(?int $step = null)`
 
@@ -170,7 +170,7 @@ Get the array representation of the form state.
     
         @case(1)
             <label>Name</label>
-            <input type="text" name="name" value="{{ $form->getValue('name', old('name')) }}">
+            <input type="text" name="name" value="{{ $form->getValue('name') }}">
             @error('name') 
                 <p>{{ $errors->first('name') }}</p>
             @enderror

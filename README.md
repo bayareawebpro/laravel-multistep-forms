@@ -282,7 +282,7 @@ The response returned will have two properties:
 
 ```json
 {
-	"form": {}
+	"form": {},
 	"data": {}
 }
 ```

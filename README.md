@@ -36,6 +36,9 @@ return Form::make('my-form', [
     // Namespace the session data.
     ->namespaced('my-session-key')
 
+    // Allow backwards navigation via get request. ?form_step=x
+    ->canNavigateBack(true)
+
     // Before x step validation...
     ->beforeStep('*', function (Form $form) {
        logger('before*', $form->toArray());
@@ -88,7 +91,7 @@ other parts of your application that use the session store.
 
 * `GET` requests will load the form state and data for the saved current step or fallback to step 1.
 * `POST`,`PUT`,`PATCH` etc.. will validate and process the request for any step and proceed to the next configured step.
-
+* Backwards navigation can be enabled via the `canNavigateBack` method.
 ```php
 <?php
 
@@ -99,6 +102,7 @@ $form = Form::make('onboarding.start', [
 ]);
 
 $form->namespaced('onboarding');
+$form->canNavigateBack(true);
 ```
 
 ---
@@ -218,7 +222,9 @@ Data will be injected into the view as well as the form itself allowing you to a
 <?php
 use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
 
-$form = Form::make('my-view', $data)->namespaced('onboarding');
+$form = Form::make('my-view', $data);
+$form->namespaced('onboarding');
+$form->canNavigateBack(true);
 ```
 
 ```blade
@@ -233,23 +239,21 @@ $form = Form::make('my-view', $data)->namespaced('onboarding');
     @csrf
 
 
-    @if($form->isFuture(4))
-        <a
-            href="{{ route('submit', ['form_step' => 1]) }}"
-            class="{{ $form->isPast(1, 'text-blue-500', $form->isActive(1, 'font-bold', 'disabled')) }}">
-            Step 1
-        </a>
-        <a
-            href="{{ route('submit', ['form_step' => 2]) }}"
-            class="{{ $form->isPast(2, 'text-blue-500', $form->isActive(2, 'font-bold', 'disabled')) }}">
-            Step 2
-        </a>
-        <a
-            href="{{ route('submit', ['form_step' => 3]) }}"
-            class="{{ $form->isPast(3, 'text-blue-500', $form->isActive(3, 'font-bold', 'disabled')) }}">
-            Step 3
-        </a>
-    @endif
+    <a
+        href="{{ route('submit', ['form_step' => 1]) }}"
+        class="{{ $form->isPast(1, 'text-blue-500', $form->isActive(1, 'font-bold', 'disabled')) }}">
+        Step 1
+    </a>
+    <a
+        href="{{ route('submit', ['form_step' => 2]) }}"
+        class="{{ $form->isPast(2, 'text-blue-500', $form->isActive(2, 'font-bold', 'disabled')) }}">
+        Step 2
+    </a>
+    <a
+        href="{{ route('submit', ['form_step' => 3]) }}"
+        class="{{ $form->isPast(3, 'text-blue-500', $form->isActive(3, 'font-bold', 'disabled')) }}">
+        Step 3
+    </a>
 
     
     @switch($form->currentStep())
@@ -287,9 +291,6 @@ $form = Form::make('my-view', $data)->namespaced('onboarding');
         <button type="submit" name="submit">Continue</button>
     @endif
 
-    <hr>
-
-    {{ $form->toCollection() }}
 </form>
 ```
 
@@ -304,7 +305,9 @@ techniques to use Vue within blade as well.
 
 use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
 
-$form = Form::make()->namespaced('my-session-key');
+$form = Form::make();
+$form->namespaced('onboarding');
+$form->canNavigateBack(true);
 ```
 
 #### JSON Response Schema
@@ -319,92 +322,230 @@ The response returned will have two properties:
 ```
 
 ```html
-<div id="app">
-    <v-form action="{{ route('submit') }}">
-        <template v-slot:default="{form, options, errors, reset}">
-            <template v-if="form.form_step === 1">
-                <label>Name</label>
-                <input v-model="form.name" placeholder="name">
-                <div v-if="errors.name">@{{ errors.name[0] }}</div>
+<v-form action="{{ route('submit') }}">
+    <template v-slot:default="{form, options, errors, reset, back}">
 
-                <label>Role</label>
-                <select v-model="form.role">
-                    <option disabled value="">Please select one</option>
-                    <option v-for="option in options.roles" :value="option">@{{ option }}</option>
-                </select>
-                <div v-if="errors.role">@{{ errors.role[0] }}</div>
-            </template>
-            <template v-if="form.form_step === 2">
-                <label>Email</label>
-                <input v-model="form.email" placeholder="email">
-                <div v-if="errors.email">@{{ errors.email[0] }}</div>
+        <h1 class="font-black my-3">
+            @{{ options.title }}
+        </h1>
 
-                <label>Phone</label>
-                <input v-model="form.phone" placeholder="phone">
-                <div v-if="errors.phone">@{{ errors.phone[0] }}</div>
-            </template>
-            <template v-if="form.form_step === 3">
-                <p>
-                    Name: @{{ form.name }}<br>
-                    Role: @{{ form.role }}<br>
-                    Email: @{{ form.email }}<br>
-                    Phone: @{{ form.phone }}<br>
-                </p>
-                <p v-if="options.message">
-                   @{{ form.message }}
-                </p>
-                <button type="submit">Save</button>
-            </template>
-            <button v-else type="submit">Continue</button>
-            <br><pre><code v-text="form"></code></pre>
+        <p v-if="options.message" role="alert" class="bg-gray-200 p-4 my-5 font-bold text-blue-500">
+            @{{ options.message }}
+        </p>
+
+        <template v-if="form.form_step < 4">
+            <a
+                @click="back(1)"
+                :class="{'text-blue-500': form.form_step > 1, 'font-bold': form.form_step === 1}">
+                Step 1
+            </a>
+            <a
+                @click="back(2)"
+                :class="{'text-blue-500': form.form_step > 2, 'font-bold': form.form_step === 2}">
+                Step 2
+            </a>
+            <a
+                @click="back(3)"
+                :class="{'text-blue-500': form.form_step > 3, 'font-bold': form.form_step === 3}">
+                Step 3
+            </a>
         </template>
-    </v-form>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js" integrity="sha256-T/f7Sju1ZfNNfBh7skWn0idlCBcI3RwdLSS4/I7NQKQ=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js" integrity="sha256-ngFW3UnAN0Tnm76mDuu7uUtYEcG3G5H1+zioJw3t+68=" crossorigin="anonymous"></script>
+        <template v-if="form.form_step === 1">
+
+           <v-input
+               name="name"
+               label="Name"
+               :errors="errors"
+               v-model="form.name">
+           </v-input>
+
+           <v-select
+               name="name"
+               label="Name"
+               :errors="errors"
+               :options="options.roles"
+               v-model="form.role">
+           </v-select>
+
+            <x-action>Continue</x-action>
+        </template>
+
+        <template v-if="form.form_step === 2">
+            <v-input
+                name="email"
+                label="Email"
+                :errors="errors"
+                v-model="form.email">
+            </v-input>
+            <v-input
+                name="phone"
+                label="Phone"
+                :errors="errors"
+                v-model="form.phone">
+            </v-input>
+            <x-action>Continue</x-action>
+        </template>
+
+        <template v-if="form.form_step === 3">
+            <v-input
+                name="bio"
+                label="Bio"
+                :errors="errors"
+                v-model="form.bio">
+            </v-input>
+            <v-input
+                name="notify"
+                label="Notify"
+                :errors="errors"
+                v-model="form.notify">
+            </v-input>
+            <x-action>Continue</x-action>
+        </template>
+
+        <template v-if="form.form_step === 4">
+            <h3>Review Submission</h3>
+            <p>
+                Name: @{{ form.name }}<br>
+                Role: @{{ form.role }}<br>
+                Email: @{{ form.email }}<br>
+                Phone: @{{ form.phone }}<br>
+            </p>
+            <x-action>Save</x-action>
+            <x-action @click="reset">Reset</x-action>
+        </template>
+
+        <template v-if="form.form_step === 5">
+            <x-action>Done</x-action>
+        </template>
+
+    </template>
+</v-form>
+```
+
+
+#### Form Component:
+
+```vue
 <script>
-    new Vue({
-        el: '#app',
-        components:{
-            'v-form': {
-                props: ['action'],
-                data: ()=>({
-                    errors:{},
-                    options: {},
-                    form: {form_step: 1},
-                }),
-                template: `<form @submit.prevent="submit"><slot :reset="reset" :form="form" :options="options" :errors="errors"/></form>`,
-                methods:{
-                    reset(){
-                        this.form.submit = 'reset'
-                        this.submit()
-                    },
-                    fetch(){
-                        axios
-                            .get(this.action)
-                            .then(this.onResponse)
-                            .catch(this.onError)
-                    },
-                    submit(){
-                        axios
-                            .post(this.action, this.form)
-                            .then(this.onResponse)
-                            .catch(this.onError)
-                    },
-                    onError({response}){
-                        this.errors=response.data.errors
-                    },
-                    onResponse({data}){
-                        this.form = (data.form || {})
-                        this.options = (data.data || {})
-                    },
-                },
-                created(){
-                    this.fetch()
+    export default {
+        name: 'Form',
+        props: ['action'],
+        data: () => ({
+            errors: {},
+            options: {},
+            form: {form_step: 1},
+        }),
+        methods: {
+            reset() {
+                this.form.submit = 'reset'
+                this.submit()
+            },
+            back(step) {
+                if(step < this.form.form_step){
+                    this.fetch({form_step: step})
                 }
             },
+            fetch(params = {}) {
+                axios
+                    .get(this.action, {params})
+                    .then(this.onResponse)
+                    .catch(this.onError)
+            },
+            submit() {
+                axios
+                    .post(this.action, this.form)
+                    .then(this.onResponse)
+                    .catch(this.onError)
+            },
+            onError({response}) {
+                this.errors = (response.data.errors || response.data.exception)
+            },
+            onResponse({data}) {
+                this.errors = {}
+                this.options = (data.data || {})
+                this.form = (data.form || {})
+            },
+        },
+        created() {
+            this.fetch()
         }
-    })
+    }
 </script>
+<template>
+    <form @submit.prevent="submit">
+        <slot :reset="reset" :back="back" :form="form" :options="options" :errors="errors"/>
+    </form>
+</template>
+```
+
+#### Input Component
+
+```vue
+<script>
+    export default {
+        name: "Input",
+        props:['name', 'label', 'value', 'errors'],
+        computed:{
+            field:{
+                get(){
+                    return this.value
+                },
+                set(val){
+                    return this.$emit('input', val)
+                }
+            }
+        }
+    }
+</script>
+<template>
+    <label class="block my-4">
+        <span class="text-gray-700 font-bold">
+            {{ label || name }}
+        </span>
+        <input
+            type="text"
+            v-model="field"
+            class="form-input block w-full mt-2">
+        <div v-if="errors[name]" class="text-red-500 text-xs my-2">
+            {{ errors[name][0] }}
+        </div>
+    </label>
+</template>
+```
+
+
+#### Select Component
+
+```vue
+<script>
+    export default {
+        name: "Select",
+        props:['name', 'label', 'value', 'errors', 'options'],
+        computed:{
+            field:{
+                get(){
+                    return this.value
+                },
+                set(val){
+                    return this.$emit('input', val)
+                }
+            }
+        }
+    }
+</script>
+<template>
+    <label class="block">
+        <span class="text-gray-700">{{ label || name }}</span>
+        <select v-model="field" class="form-select mt-1 block w-full">
+            <option disabled value="">Please select one</option>
+            <option v-for="option in options" :value="option">
+                {{ option }}
+            </option>
+        </select>
+        <div v-if="errors[name]" class="text-red-500 text-xs my-2">
+            {{ errors[name][0] }}
+        </div>
+    </label>
+</template>
 ```

@@ -410,7 +410,7 @@ class MultiStepForm implements Responsable, Arrayable
     protected function nextStep(): self
     {
         if (!$this->wasReset && !$this->isStep($this->lastStep())) {
-            $this->session->increment("{$this->namespace}.form_step");
+            $this->setValue('form_step', 1 + (int) $this->request->get('form_step', 1));
         }
         return $this;
     }

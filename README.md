@@ -459,7 +459,6 @@ The response returned will have two properties:
                     .catch(this.onError)
             },
             onError({response}) {
-                this.errors = {}
                 this.errors = (response.data.errors || response.data.exception)
             },
             onResponse({data}) {

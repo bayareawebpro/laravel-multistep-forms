@@ -97,4 +97,36 @@ class BladeTest extends TestCase
             ->assertSessionHas('test.reset', true)
             ->assertRedirect(route('submit'));
     }
+
+    public function test_navigation_back_enabled()
+    {
+        $this->withSession([
+            'test' => ['form_step' => 2]
+        ]);
+
+        $this
+            ->get(route('submit', ['form_step' => 1]))
+            ->assertRedirect(route('submit'))
+            ->assertSessionHas('test.form_step', 1)
+            ->assertSessionDoesntHaveErrors([
+                'form_step'
+            ])
+        ;
+    }
+
+    public function test_navigation_forward_disabled()
+    {
+        $this->withSession([
+            'test' => ['form_step' => 1]
+        ]);
+
+        $this
+            ->get(route('submit', ['form_step' => 2]))
+            ->assertRedirect(route('submit'))
+            ->assertSessionHas('test.form_step', 1)
+            ->assertSessionDoesntHaveErrors([
+                'form_step'
+            ])
+        ;
+    }
 }

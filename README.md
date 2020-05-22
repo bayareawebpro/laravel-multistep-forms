@@ -156,18 +156,6 @@ Define a callback to fired **after** a step has been validated.  Step Number or 
 
 ### Helper Methods
 
-#### `currentStep()`
-
-Get the current step number.
-
-#### `isStep(int $step = 1)`
-
-Get the current step number.
-
-#### `isLastStep()`
-
-Determine if the current step the last step.
-
 #### `stepConfig(?int $step = null)`
 
 Get the current step config, or a specific step config.
@@ -180,10 +168,33 @@ Get a field value from the form state (session / old input) or fallback to a def
 
 Set a field value from the session form state.
 
+#### `currentStep()`
+
+Get the current step number.
+
+#### `isStep(int $step = 1)`
+
+Get the current step number.
+
+#### `isLastStep()`
+
+Determine if the current step the last step.
+
+#### `isPast(int $step, $truthy = true, $falsy = false)`
+
+Determine if the current step in the past and optionally pass through values (class helper).
+
+#### `isActive(int $step, $truthy = true, $falsy = false)`
+
+Determine if the current step is active and optionally pass through values (class helper).
+
+#### `isFuture(int $step, $truthy = true, $falsy = false)`
+
+Determine if the current step in the future and optionally pass through values (class helper).
+
 #### `reset($data = [])`
 
 Reset the form state to defaults passing an optional array of data to seed.
-
 
 #### `tap(new Invokable)`
 
@@ -220,6 +231,26 @@ $form = Form::make('my-view', $data)->namespaced('onboarding');
 <form method="post" action="{{ route('submit') }}">
     <input type="hidden" name="form_step" value="{{ $form->currentStep() }}">
     @csrf
+
+
+    @if($form->isFuture(4))
+        <a
+            href="{{ route('submit', ['form_step' => 1]) }}"
+            class="{{ $form->isPast(1, 'text-blue-500', $form->isActive(1, 'font-bold', 'disabled')) }}">
+            Step 1
+        </a>
+        <a
+            href="{{ route('submit', ['form_step' => 2]) }}"
+            class="{{ $form->isPast(2, 'text-blue-500', $form->isActive(2, 'font-bold', 'disabled')) }}">
+            Step 2
+        </a>
+        <a
+            href="{{ route('submit', ['form_step' => 3]) }}"
+            class="{{ $form->isPast(3, 'text-blue-500', $form->isActive(3, 'font-bold', 'disabled')) }}">
+            Step 3
+        </a>
+    @endif
+
     
     @switch($form->currentStep())
     

@@ -3,21 +3,27 @@
 namespace BayAreaWebPro\MultiStepForms;
 
 use Closure;
+
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+
 use Illuminate\Validation\Rule;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
-
 use Illuminate\Session\Store as Session;
+
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Contracts\View\View as ViewContract;
 
 class MultiStepForm implements Responsable, Arrayable
 {
-    public string $namespace = 'multistep-form';
-    public bool $wasReset = false;
+    protected string $namespace = 'multistep-form';
+    protected bool $wasReset = false;
+    protected bool $canGoBack = false;
     public Collection $after;
     public Collection $before;
     public Collection $steps;
@@ -58,6 +64,234 @@ class MultiStepForm implements Responsable, Arrayable
         ]);
     }
 
+
+    /**
+     * Handle the validated request.
+     * @return mixed
+     */
+    protected function handleRequest()
+    {
+        if (!$this->request->isMethod('GET')) {
+
+            if ($response = (
+                $this->handleBefore('*') ??
+                $this->handleBefore($this->currentStep())
+            )) {
+                return $response;
+            }
+
+            if (!$this->wasReset) {
+
+                $this->save($this->validate());
+
+                if ($response = (
+                    $this->handleAfter('*') ??
+                    $this->handleAfter($this->currentStep())
+                )) {
+                    return $response;
+                }
+
+                $this->nextStep();
+
+            }
+        }
+
+        return $this->renderResponse();
+    }
+
+    /**
+     * Render the request as a response.
+     * @return ViewContract|JsonResponse|RedirectResponse|Response
+     */
+    protected function renderResponse()
+    {
+        // Verify Backwards Navigation.
+        $shouldGoBack = $this->shouldNavigateBack();
+
+        if(!$this->usesViews() || $this->needsJsonResponse()){
+            return new JsonResponse([
+                'data' => $this->getData(),
+                'form' => $this->toArray(),
+            ]);
+        }
+
+        // Handle Backwards Navigation / Remove Url Parameters.
+        if ($shouldGoBack) {
+            return redirect($this->request->path());
+        }
+
+        // Redirect back after submission to allow page refresh without re-submission.
+        if (!$this->request->isMethod('GET')) {
+            return redirect()->back();
+        }
+
+        // Default to view.
+        return View::make($this->view, $this->getData([
+            'form' => $this,
+        ]));
+    }
+
+    /**
+     * Get the configuration & view data.
+     * @param array $merge
+     * @return array
+     */
+    protected function getData(array $merge = []): array
+    {
+        return array_merge($this->data, $this->stepConfig()->get('data', []), $merge);
+    }
+
+    /**
+     * Validate the request.
+     * @return array
+     */
+    protected function validate(): array
+    {
+        $step = $this->stepConfig((int)$this->request->get('form_step', 1));
+
+        return $this->request->validate(
+            array_merge($step->get('rules', []), [
+                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
+            ]),
+            $step->get('messages', [])
+        );
+    }
+
+    /**
+     * Create an HTTP response that represents the object.
+     * @param \Illuminate\Http\Request|null $request
+     * @return \Illuminate\Http\Response
+     */
+    public function toResponse($request = null)
+    {
+        $this->request = ($request ?? $this->request);
+
+        return $this->handleRequest();
+    }
+
+    /**
+     * Allow Navigate Back
+     * @param bool $enabled
+     * @return $this
+     */
+    public function canNavigateBack(bool $enabled = true): self
+    {
+        $this->canGoBack = $enabled;
+        return $this;
+    }
+
+    /**
+     * Handle Backwards Navigation.
+     * @return bool|int
+     */
+    protected function shouldNavigateBack()
+    {
+        if (
+            $this->canGoBack &&
+            $this->request->isMethod('GET') &&
+            $this->request->filled('form_step')
+        ) {
+            $step = (int) $this->request->get('form_step', 1);
+            if ($this->steps->has($step) && $this->isPast($step)) {
+                $this->setValue('form_step', $step);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Request needs JSON response.
+     * @return bool
+     */
+    public function needsJsonResponse(): bool
+    {
+        return $this->request->wantsJson() || $this->request->isXmlHttpRequest();
+    }
+
+    /**
+     * Request needs JSON response.
+     * @return bool
+     */
+    public function usesViews(): bool
+    {
+        return is_string($this->view);
+    }
+
+    /**
+     * Is Active Condition
+     * @param int $step
+     * @param mixed|null $active
+     * @param mixed|null $fallback
+     * @return mixed
+     */
+    public function isActive(int $step, $active = true, $fallback = false)
+    {
+        if ($this->isStep($step)) {
+            return $active;
+        }
+        return $fallback;
+    }
+
+    /**
+     * Is Future Condition
+     * @param int $step
+     * @param mixed|null $active
+     * @param mixed|null $fallback
+     * @return mixed
+     */
+    public function isFuture(int $step, $active = true, $fallback = false)
+    {
+        if ($this->steps->has($step) && $this->currentStep() < $step) {
+            return $active;
+        }
+        return $fallback;
+    }
+
+    /**
+     * Is Past Condition
+     * @param int $step
+     * @param mixed $active
+     * @param mixed $fallback
+     * @return mixed
+     */
+    public function isPast(int $step, $active = true, $fallback = false)
+    {
+        if ($this->steps->has($step) && $this->currentStep() > $step) {
+            return $active;
+        }
+        return $fallback;
+    }
+
+
+    /**
+     * Get the instance as an array.
+     * @return array
+     */
+    public function toArray(): array
+    {
+        return $this->session->get($this->namespace, []);
+    }
+
+    /**
+     * Get the instance as an Collection.
+     * @return Collection
+     */
+    public function toCollection(): Collection
+    {
+        return Collection::make($this->toArray());
+    }
+
+    /**
+     * Setup the session if it hasn't been started.
+     */
+    protected function setupSession(): void
+    {
+        if (!is_numeric($this->getValue('form_step', false))) {
+            $this->setValue('form_step', 1);
+        }
+    }
+
     /**
      * Set the session namespace.
      * @param string $namespace
@@ -66,6 +300,7 @@ class MultiStepForm implements Responsable, Arrayable
     public function namespaced(string $namespace): self
     {
         $this->namespace = $namespace;
+        $this->setupSession();
         return $this;
     }
 
@@ -122,10 +357,6 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function currentStep(): int
     {
-        // Override the current step when reset.
-        if ($this->wasReset) return 1;
-
-        // Pull from request or fallback to session.
         return (int)$this->session->get("{$this->namespace}.form_step", 1);
     }
 
@@ -249,133 +480,5 @@ class MultiStepForm implements Responsable, Arrayable
         if ($callback = $this->after->get($key)) {
             return $callback($this);
         }
-    }
-
-    /**
-     * Handle the validated request.
-     * @return mixed
-     */
-    protected function handleRequest()
-    {
-        if (!$this->request->isMethod('GET')) {
-
-            if ($response = (
-                $this->handleBefore('*') ??
-                $this->handleBefore($this->currentStep())
-            )) {
-                return $response;
-            }
-
-            if (!$this->wasReset) {
-
-                $this->save($this->validate());
-
-                if ($response = (
-                    $this->handleAfter('*') ??
-                    $this->handleAfter($this->currentStep())
-                )) {
-                    return $response;
-                }
-
-                $this->nextStep();
-
-            }
-        }
-
-        return $this->renderResponse();
-    }
-
-    /**
-     * Render the request as a response.
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse|Response
-     */
-    protected function renderResponse()
-    {
-        // Setup the session if not already set.
-        if (!$this->getValue('form_step', false)) {
-            $this->setValue('form_step', 1);
-        }
-
-        // Render as JSON Response.
-        if ($this->needsJsonResponse() || !is_string($this->view)) {
-            return new Response([
-                'data' => $this->getData(),
-                'form' => $this->toArray(),
-            ]);
-        }
-
-        // Redirect back after submission.
-        if (!$this->request->isMethod('GET')) {
-            return redirect()->back()->withInput();
-        }
-
-        // Default to view.
-        return View::make($this->view, $this->getData([
-            'form' => $this,
-        ]));
-    }
-
-    /**
-     * Get the configuration & view data.
-     * @return array
-     */
-    protected function getData(array $merge = []): array
-    {
-        return array_merge($this->data, $this->stepConfig()->get('data', []),$merge);
-    }
-
-    /**
-     * Validate the request.
-     * @return array
-     */
-    protected function validate(): array
-    {
-        $step = $this->stepConfig((int) $this->request->get('form_step', 1));
-
-        return $this->request->validate(
-            array_merge($step->get('rules', []), [
-                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
-            ]),
-            $step->get('messages', [])
-        );
-    }
-
-    /**
-     * Create an HTTP response that represents the object.
-     * @param \Illuminate\Http\Request|null $request
-     * @return \Illuminate\Http\Response
-     */
-    public function toResponse($request = null)
-    {
-        $this->request = ($request ?? $this->request);
-
-        return $this->handleRequest();
-    }
-
-    /**
-     * Request needs JSON response.
-     * @return bool
-     */
-    protected function needsJsonResponse(): bool
-    {
-        return $this->request->wantsJson() || $this->request->isXmlHttpRequest();
-    }
-
-    /**
-     * Get the instance as an array.
-     * @return array
-     */
-    public function toArray(): array
-    {
-        return $this->session->get($this->namespace, []);
-    }
-
-    /**
-     * Get the instance as an Collection.
-     * @return Collection
-     */
-    public function toCollection(): Collection
-    {
-        return Collection::make($this->toArray());
     }
 }

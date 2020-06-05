@@ -194,7 +194,7 @@ Determine if the specified step is active and optionally pass through values (cl
 
 #### `isFuture(int $step, $truthy = true, $falsy = false)`
 
-Determine if the current step is in the future and optionally pass through values (class helper).
+Determine if the specified step is in the future and optionally pass through values (class helper).
 
 #### `reset($data = [])`
 

@@ -25,6 +25,6 @@ jobs:
       - name: Unit Tests
         run: composer test
       - name: Codecov
-        uses: codecov/codecov-action@latest
+        uses: codecov/codecov-action@v1.0.7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

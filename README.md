@@ -425,7 +425,7 @@ The response returned will have two properties:
 ```
 
 
-#### Form Component:
+#### Example Form Component
 
 ```vue
 <script>
@@ -480,7 +480,7 @@ The response returned will have two properties:
 </template>
 ```
 
-#### Input Component
+#### Example Input Component
 
 ```vue
 <script>
@@ -516,7 +516,7 @@ The response returned will have two properties:
 ```
 
 
-#### Select Component
+#### Example Select Component
 
 ```vue
 <script>

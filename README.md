@@ -153,7 +153,7 @@ Define a callback to fired **before** a step has been validated.  Step Number or
 
 Define a callback to fired **after** a step has been validated.  Step Number or * for all.
 
-> Return a response from this hook to return early before validation occours.
+> Return a response from this hook to return early before the form step is incremented.
 
 `onStep($step, Closure $closure)`
 
@@ -187,15 +187,15 @@ Determine if the current step the last step.
 
 #### `isPast(int $step, $truthy = true, $falsy = false)`
 
-Determine if the current step in the past and optionally pass through values (class helper).
+Determine if the specified step is in the past and optionally pass through values (class helper).
 
 #### `isActive(int $step, $truthy = true, $falsy = false)`
 
-Determine if the current step is active and optionally pass through values (class helper).
+Determine if the specified step is active and optionally pass through values (class helper).
 
 #### `isFuture(int $step, $truthy = true, $falsy = false)`
 
-Determine if the current step in the future and optionally pass through values (class helper).
+Determine if the specified step is in the future and optionally pass through values (class helper).
 
 #### `reset($data = [])`
 

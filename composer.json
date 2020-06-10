@@ -1,6 +1,6 @@
 {
     "name": "bayareawebpro/laravel-multistep-forms",
-    "description": "A Responsable MultiStep Form Builder for Laravel.",
+    "description": "Responsable MultiStep Form Builder for Laravel.",
     "license": "MIT",
     "authors": [
         {
@@ -9,17 +9,17 @@
         }
     ],
     "require": {
-        "php": "^7.1.3",
-        "illuminate/support": "^6.0|^7.0",
+        "php": "^7.4",
         "illuminate/http": "^6.0|^7.0",
-        "illuminate/validation": "^6.0|^7.0",
+        "illuminate/support": "^6.0|^7.0",
         "illuminate/session": "^6.0|^7.0",
-        "illuminate/contracts": "^6.0|^7.0"
+        "illuminate/contracts": "^6.0|^7.0",
+        "illuminate/validation": "^6.0|^7.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^5.0",
         "phpunit/phpunit": "^8.0",
-        "nunomaduro/larastan": "^0.5"
+        "orchestra/testbench": "^5.0",
+        "nunomaduro/larastan": "^0.6"
     },
     "autoload": {
         "psr-4": {

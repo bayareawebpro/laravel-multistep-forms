@@ -71,6 +71,8 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function handleRequest()
     {
+        $this->setupSession();
+
         if (!$this->request->isMethod('GET')) {
 
             if ($response = (
@@ -109,7 +111,7 @@ class MultiStepForm implements Responsable, Arrayable
         $shouldGoBack = $this->shouldNavigateBack();
 
         if(!$this->usesViews() || $this->needsJsonResponse()){
-            return new JsonResponse([
+            return new JsonResponse((object) [
                 'data' => $this->getData(),
                 'form' => $this->toArray(),
             ]);
@@ -182,9 +184,9 @@ class MultiStepForm implements Responsable, Arrayable
 
     /**
      * Handle Backwards Navigation.
-     * @return bool|int
+     * @return bool
      */
-    protected function shouldNavigateBack()
+    protected function shouldNavigateBack(): bool
     {
         if (
             $this->canGoBack &&
@@ -195,7 +197,7 @@ class MultiStepForm implements Responsable, Arrayable
             if ($this->steps->has($step) && $this->isPast($step)) {
                 $this->setValue('form_step', $step);
             }
-            return true;
+            return true; //Redirect back without query.
         }
         return false;
     }
@@ -300,7 +302,6 @@ class MultiStepForm implements Responsable, Arrayable
     public function namespaced(string $namespace): self
     {
         $this->namespace = $namespace;
-        $this->setupSession();
         return $this;
     }
 
@@ -309,7 +310,7 @@ class MultiStepForm implements Responsable, Arrayable
      * @param Closure|mixed $closure
      * @return $this
      */
-    public function tap($closure)
+    public function tap($closure): self
     {
         $closure($this);
         return $this;

@@ -16,19 +16,31 @@ Route::any('/hooks', function(){
             return response('before*');
         }
     })
-    ->beforeStep(1, function (MultiStepForm $form) {
-        if($form->request->filled('before1')){
-            return response('before1');
-        }
-    })
     ->onStep('*', function (MultiStepForm $form) {
         if($form->request->filled('on*')){
             return response('on*');
         }
     })
+    ->addStep(1)
     ->onStep(1, function (MultiStepForm $form) {
         if($form->request->filled('on1')){
             return response('on1');
+        }
+    })
+    ->beforeStep(1, function (MultiStepForm $form) {
+        if($form->request->filled('before1')){
+            return response('before1');
+        }
+    })
+    ->addStep(2)
+    ->onStep(2, function (MultiStepForm $form) {
+        if($form->request->filled('on2')){
+            return response('on2');
+        }
+    })
+    ->beforeStep(2, function (MultiStepForm $form) {
+        if($form->request->filled('before2')){
+            return response('before2');
         }
     })
     ;

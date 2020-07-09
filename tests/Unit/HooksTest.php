@@ -34,7 +34,6 @@ class HooksTest extends TestCase
             ->json('POST', route('hooks'),[
                 'on*' =>true,
                 'form_step' =>1,
-                'name' =>'name',
             ])
             ->assertSee('on*')
             ->assertOk()
@@ -44,25 +43,42 @@ class HooksTest extends TestCase
     public function test_step_before()
     {
         $this->startSession();
+
+        $this
+            ->json('POST', route('hooks'),[
+                'form_step' => 1,
+                'on1' =>true,
+            ])
+            ->assertDontSee('before1')
+            ->assertSee('on1')
+            ->assertOk()
+        ;
         $this
             ->json('POST', route('hooks'),[
                 'before1' =>true,
+                'form_step' => 1
             ])
             ->assertSee('before1')
             ->assertOk()
         ;
     }
 
-    public function test_step_on()
+    public function test_step_before2()
     {
-        $this->startSession();
+        $this->withSession(['test' => ['form_step'=>1]]);
         $this
             ->json('POST', route('hooks'),[
-                'on1' =>true,
-                'form_step' =>1,
-                'name' =>'name',
+                'form_step' => 2
             ])
-            ->assertSee('on1')
+            ->assertDontSee('before2')
+            ->assertOk()
+        ;
+        $this
+            ->json('POST', route('hooks'),[
+                'before2' =>true,
+                'form_step' => 2
+            ])
+            ->assertSee('before2')
             ->assertOk()
         ;
     }

@@ -77,7 +77,7 @@ class MultiStepForm implements Responsable, Arrayable
 
             if ($response = (
                 $this->handleBefore('*') ??
-                $this->handleBefore($this->currentStep())
+                $this->handleBefore($this->requestedStep())
             )) {
                 return $response;
             }
@@ -149,7 +149,7 @@ class MultiStepForm implements Responsable, Arrayable
      */
     protected function validate(): array
     {
-        $step = $this->stepConfig((int)$this->request->get('form_step', 1));
+        $step = $this->stepConfig($this->requestedStep());
 
         return $this->request->validate(
             array_merge($step->get('rules', []), [
@@ -193,7 +193,7 @@ class MultiStepForm implements Responsable, Arrayable
             $this->request->isMethod('GET') &&
             $this->request->filled('form_step')
         ) {
-            $step = (int) $this->request->get('form_step', 1);
+            $step = $this->requestedStep();
             if ($this->steps->has($step) && $this->isPast($step)) {
                 $this->setValue('form_step', $step);
             }
@@ -362,6 +362,15 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
+     * Get Requested Step
+     * @return int
+     */
+    public function requestedStep(): int
+    {
+        return (int)$this->request->get("form_step", 1);
+    }
+
+    /**
      * Get the current step config or by number.
      * @param int $step
      * @return Collection
@@ -411,7 +420,7 @@ class MultiStepForm implements Responsable, Arrayable
     protected function nextStep(): self
     {
         if (!$this->wasReset && !$this->isStep($this->lastStep())) {
-            $this->setValue('form_step', 1 + (int) $this->request->get('form_step', 1));
+            $this->setValue('form_step', 1 + $this->requestedStep());
         }
         return $this;
     }
@@ -422,7 +431,7 @@ class MultiStepForm implements Responsable, Arrayable
      */
     public function lastStep(): int
     {
-        return $this->steps->keys()->max(fn($value) => $value) ?? 1;
+        return $this->steps->keys()->filter(fn($value) => is_int($value))->max() ?? 1;
     }
 
     /**

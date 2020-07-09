@@ -175,7 +175,11 @@ Set a field value from the session form state.
 
 #### `currentStep()`
 
-Get the current step number.
+Get the current saved step number.
+
+#### `requestedStep()`
+
+Get the requested step number.
 
 #### `isStep(int $step = 1)`
 

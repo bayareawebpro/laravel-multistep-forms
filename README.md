@@ -13,7 +13,7 @@ Multistep Form Builder is a "[responsable](https://laravel-news.com/laravel-5-5-
 * Specify a view to use Blade or go headless with JSON for use with Javascript frameworks.
 * Configure the rules, messages and supporting data for each step with simple arrays.
 * Submit to the same route multiple times to merge each validated request into a namespaced session key.  
-* Hook into each step **before** or **after** validation to interact with the form or return a reponse.
+* Hook into each step **before** or **after** validation to interact with the form or return a response.
 
 ## Installation
 

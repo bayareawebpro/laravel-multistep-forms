@@ -22,6 +22,7 @@ use Illuminate\Contracts\View\View as ViewContract;
 class MultiStepForm implements Responsable, Arrayable
 {
     protected string $namespace = 'multistep-form';
+    protected Closure|null $beforeSaveCallback = null;
     protected bool $wasReset = false;
     protected bool $canGoBack = false;
     public Collection $after;
@@ -444,12 +445,27 @@ class MultiStepForm implements Responsable, Arrayable
     }
 
     /**
+     * Set the data mapper callback.
+     * @param Closure $callback
+     * @return self
+     */
+    public function beforeSave(Closure $callback): self
+    {
+        $this->beforeSaveCallback = $callback;
+        return $this;
+    }
+
+    /**
      * Save the validation data to the session.
      * @param array $data
      * @return $this
      */
     protected function save(array $data = []): self
     {
+        if(is_callable($this->beforeSaveCallback)){
+            $data = call_user_func($this->beforeSaveCallback, $data);
+        }
+
         $this->session->put($this->namespace, array_merge(
             $this->session->get($this->namespace, []), $data
         ));

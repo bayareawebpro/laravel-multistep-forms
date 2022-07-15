@@ -72,11 +72,19 @@ return Form::make('my-form', [
     // After step validation...
     ->onStep(3, function (Form $form) {
        logger('onStep3', $form->toArray());
+       
        if($form->request->get('submit') === 'reset'){
             $form->reset();
        }else{
            return response('OK');
        }
+    })
+   
+    // Modify data before saved to session after each step.
+    ->beforeSave(function(array $data) {
+    
+        // Transform non-serializable objects to paths, array data etc...
+        return $data;
     })
 ;
 ```
@@ -172,6 +180,10 @@ Get a field value from the form state (session / old input) or fallback to a def
 #### `setValue(string $key, $value)`
 
 Set a field value from the session form state.
+
+#### `beforeSave(Closure $callback)`
+
+Will be passed the full array of validated data for modification before saving.  Callback MUST return an array to be saved.
 
 #### `currentStep()`
 

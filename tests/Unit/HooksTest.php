@@ -6,14 +6,26 @@ use BayAreaWebPro\MultiStepForms\Tests\TestCase;
 
 class HooksTest extends TestCase
 {
+    public function test_before_save()
+    {
+        $this->withSession(['test' => []]);
+        $this
+            ->json('POST', route('hooks'), [
+                'form_step' => 1,
+            ])
+            ->assertOk()
+            ->assertSessionHas('test.before_save')
+        ;
+    }
+
     public function test_tap()
     {
         $this
             ->json('GET', route('hooks'),[
                 'invoke' =>true,
             ])
-            ->assertSessionHas('test.invoke')
             ->assertOk()
+            ->assertSessionHas('test.invoke')
         ;
     }
 

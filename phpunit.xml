@@ -1,34 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="vendor/autoload.php"
-         backupGlobals="false"
-         backupStaticAttributes="false"
-         colors="true"
-         verbose="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         processIsolation="false"
-         stopOnFailure="false">
-    <testsuites>
-        <testsuite name="Unit">
-            <directory suffix="Test.php">./tests/Unit</directory>
-        </testsuite>
-    </testsuites>
-    <filter>
-        <whitelist addUncoveredFilesFromWhitelist="false">
-            <directory suffix=".php">src/</directory>
-        </whitelist>
-    </filter>
-    <logging>
-        <log type="tap" target="build/report.tap"/>
-        <log type="junit" target="build/report.junit.xml"/>
-        <log type="coverage-clover" target="build/clover.xml"/>
-    </logging>
-    <php>
-        <env name="APP_KEY" value="AckfSECXIvnK5r28GVIWUAxmbBSjTsm1"/>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_URL" value="http://localhost"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-    </php>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="vendor/autoload.php" backupGlobals="false" backupStaticAttributes="false" colors="true" verbose="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" processIsolation="false" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <coverage includeUncoveredFiles="false">
+    <include>
+      <directory suffix=".php">src/</directory>
+    </include>
+    <report>
+      <clover outputFile="build/clover.xml"/>
+    </report>
+  </coverage>
+  <testsuites>
+    <testsuite name="Unit">
+      <directory suffix="Test.php">./tests/Unit</directory>
+    </testsuite>
+  </testsuites>
+  <logging>
+    <junit outputFile="build/report.junit.xml"/>
+  </logging>
+  <php>
+    <env name="APP_KEY" value="AckfSECXIvnK5r28GVIWUAxmbBSjTsm1"/>
+    <env name="APP_ENV" value="testing"/>
+    <env name="APP_URL" value="http://localhost"/>
+    <env name="DB_DATABASE" value=":memory:"/>
+    <env name="DB_CONNECTION" value="sqlite"/>
+  </php>
 </phpunit>

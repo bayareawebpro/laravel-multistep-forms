@@ -14,42 +14,38 @@ class HooksTest extends TestCase
                 'form_step' => 1,
             ])
             ->assertOk()
-            ->assertSessionHas('test.before_save')
-        ;
+            ->assertSessionHas('test.before_save');
     }
 
     public function test_tap()
     {
         $this
-            ->json('GET', route('hooks'),[
-                'invoke' =>true,
+            ->json('GET', route('hooks'), [
+                'invoke' => true,
             ])
             ->assertOk()
-            ->assertSessionHas('test.invoke')
-        ;
+            ->assertSessionHas('test.invoke');
     }
 
     public function test_wildcard_before()
     {
         $this
-            ->json('POST', route('hooks'),[
-                'before*' =>true,
+            ->json('POST', route('hooks'), [
+                'before*' => true,
             ])
             ->assertSee('before*')
-            ->assertOk()
-        ;
+            ->assertOk();
     }
 
     public function test_wildcard_on()
     {
         $this
-            ->json('POST', route('hooks'),[
-                'on*' =>true,
-                'form_step' =>1,
+            ->json('POST', route('hooks'), [
+                'on*'       => true,
+                'form_step' => 1,
             ])
             ->assertSee('on*')
-            ->assertOk()
-        ;
+            ->assertOk();
     }
 
     public function test_step_before()
@@ -57,41 +53,37 @@ class HooksTest extends TestCase
         $this->startSession();
 
         $this
-            ->json('POST', route('hooks'),[
+            ->json('POST', route('hooks'), [
                 'form_step' => 1,
-                'on1' =>true,
+                'on1'       => true,
             ])
             ->assertDontSee('before1')
             ->assertSee('on1')
-            ->assertOk()
-        ;
+            ->assertOk();
         $this
-            ->json('POST', route('hooks'),[
-                'before1' =>true,
+            ->json('POST', route('hooks'), [
+                'before1'   => true,
                 'form_step' => 1
             ])
             ->assertSee('before1')
-            ->assertOk()
-        ;
+            ->assertOk();
     }
 
     public function test_step_before2()
     {
-        $this->withSession(['test' => ['form_step'=>1]]);
+        $this->withSession(['test' => ['form_step' => 1]]);
         $this
-            ->json('POST', route('hooks'),[
+            ->json('POST', route('hooks'), [
                 'form_step' => 2
             ])
             ->assertDontSee('before2')
-            ->assertOk()
-        ;
+            ->assertOk();
         $this
-            ->json('POST', route('hooks'),[
-                'before2' =>true,
+            ->json('POST', route('hooks'), [
+                'before2'   => true,
                 'form_step' => 2
             ])
             ->assertSee('before2')
-            ->assertOk()
-        ;
+            ->assertOk();
     }
 }

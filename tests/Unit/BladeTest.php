@@ -10,11 +10,13 @@ class BladeTest extends TestCase
     {
         $this
             ->get(route('submit'))
-            ->assertViewIs('form')
-            ->assertViewHas('title', 'MultiStep Form | Step 1')
-            ->assertSee('MultiStep Form | Step 1')
             ->assertSessionHas('test.form_step', 1)
-            ->assertOk();
+            ->assertViewIs('form')
+            ->assertSee('MultiStep Form | Step 1')
+            ->assertViewHasAll([
+                'title'   => 'MultiStep Form | Step 1',
+                'testKey' => 'testValue',
+            ]);
     }
 
     public function test_step1_errors()
@@ -110,8 +112,7 @@ class BladeTest extends TestCase
             ->assertSessionHas('test.form_step', 1)
             ->assertSessionDoesntHaveErrors([
                 'form_step'
-            ])
-        ;
+            ]);
     }
 
     public function test_navigation_forward_disabled()
@@ -126,7 +127,6 @@ class BladeTest extends TestCase
             ->assertSessionHas('test.form_step', 1)
             ->assertSessionDoesntHaveErrors([
                 'form_step'
-            ])
-        ;
+            ]);
     }
 }

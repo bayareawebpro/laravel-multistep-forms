@@ -12,7 +12,8 @@ class JsonTest extends TestCase
             ->json('GET', route('submit'))
             ->assertJsonFragment([
                 'data' => [
-                    'title' => 'MultiStep Form | Step 1',
+                    'title'   => 'MultiStep Form | Step 1',
+                    'testKey' => 'testValue',
                 ],
             ])
             ->assertOk();
@@ -40,7 +41,8 @@ class JsonTest extends TestCase
                     'name'      => 'test',
                 ],
                 'data' => [
-                    'title' => 'MultiStep Form | Step 2',
+                    'title'   => 'MultiStep Form | Step 2',
+                    'testKey' => 'testValue',
                 ],
             ])
             ->assertOk();
@@ -65,7 +67,7 @@ class JsonTest extends TestCase
                 'role'      => 'test',
             ])
             ->assertJsonMissingValidationErrors([
-                'form_step','role'
+                'form_step', 'role'
             ])
             ->assertJsonFragment([
                 'form_step' => 3,
@@ -102,7 +104,8 @@ class JsonTest extends TestCase
                     'reset'     => true,
                 ],
                 'data' => [
-                    'title' => 'MultiStep Form | Step 1',
+                    'title'   => 'MultiStep Form | Step 1',
+                    'testKey' => 'testValue',
                 ],
             ])
             ->assertOk();

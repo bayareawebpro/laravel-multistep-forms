@@ -185,6 +185,14 @@ Set a field value from the session form state.
 
 Will be passed the full array of validated data for modification before saving.  Callback MUST return an array to be saved.
 
+#### `save(array $data)`
+
+Merge and save key/values array into the session.
+
+#### `withData(array $data)`
+
+Merge additional non-form data provided to views and responses.
+
 #### `currentStep()`
 
 Get the current saved step number.
@@ -220,6 +228,10 @@ Reset the form state to defaults passing an optional array of data to seed.
 #### `tap(new Invokable)`
 
 Tap into the builder instance with invokeable classes that will be pass an instance of the form.
+
+#### `renderResponse(array $data)`
+
+Render the response manually / sidestep the validation and saving Logic.  Useful for additional routes that will update the session but do not require incrementing the current step.
 
 #### `toCollection`
 
@@ -325,6 +337,7 @@ use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
 $form = Form::make();
 $form->namespaced('onboarding');
 $form->canNavigateBack(true);
+$form->withData(['key' => $value]);
 ```
 
 #### JSON Response Schema

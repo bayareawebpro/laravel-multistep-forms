@@ -54,10 +54,13 @@ Route::any('/hooks', function () {
 
 Route::any('/', function () {
     return MultiStepForm::make('form', [
-        'title' => 'MultiStep Form'
+        'title' => 'Overwritten'
     ])
         ->canNavigateBack(true)
         ->namespaced('test')
+        ->withData([
+            'testKey'=>'testValue'
+        ])
         ->addStep(1, [
             'rules' => ['name' => 'required'],
             'data'  => ['title' => 'MultiStep Form | Step 1']

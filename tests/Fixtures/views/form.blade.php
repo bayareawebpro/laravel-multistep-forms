@@ -1,4 +1,5 @@
 {{ $title }}
+
 <form method="post" action="{{ route('submit') }}">
     @csrf
     <input

@@ -1,4 +1,6 @@
 name: ci
+env:
+  XDEBUG_MODE: 'coverage'
 on:
   push:
     branches:

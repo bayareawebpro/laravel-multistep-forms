@@ -165,12 +165,12 @@ class MultiStepForm implements Responsable, Arrayable
             ->map(fn($value)=>is_callable($value) ? call_user_func($value, $this) : $value)];
     }
 
-    public function isShowRequest(): bool
+    protected function isShowRequest(): bool
     {
         return $this->request->isMethod('GET');
     }
 
-    public function isModificationRequest(): bool
+    protected function isModificationRequest(): bool
     {
         return in_array($this->request->method(), [
             'POST', 'PUT', 'PATCH'
@@ -186,7 +186,7 @@ class MultiStepForm implements Responsable, Arrayable
         return $this->getJsonResponse();
     }
 
-    public function isDeleteRequest(): bool
+    protected function isDeleteRequest(): bool
     {
         return $this->request->isMethod('DELETE') || $this->request->boolean('reset');
     }
@@ -234,12 +234,12 @@ class MultiStepForm implements Responsable, Arrayable
         return $this;
     }
 
-    public function needsJsonResponse(): bool
+    protected function needsJsonResponse(): bool
     {
         return $this->request->isJson() || $this->request->wantsJson() || $this->request->expectsJson() || $this->request->isXmlHttpRequest();
     }
 
-    public function usesViews(): bool
+    protected function usesViews(): bool
     {
         return is_string($this->view);
     }

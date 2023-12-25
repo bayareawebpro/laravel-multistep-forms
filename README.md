@@ -8,11 +8,11 @@
 
 > https://packagist.org/packages/bayareawebpro/laravel-multistep-forms
 
-Multistep Form Builder is a "[responsable](https://laravel-news.com/laravel-5-5-responsable)" class that can be returned from controllers.  
+Multistep Form Builder is a "[responsable](https://laravel-news.com/laravel-5-5-responsable)" class that can be returned from controllers.
 
 * Specify a view to use Blade or go headless with JSON for use with Javascript frameworks.
 * Configure the rules, messages and supporting data for each step with simple arrays.
-* Submit to the same route multiple times to merge each validated request into a namespaced session key.  
+* Submit to the same route multiple times to merge each validated request into a namespaced session key.
 * Hook into each step **before** or **after** validation to interact with the form or return a response.
 
 ## Installation
@@ -26,7 +26,7 @@ composer require bayareawebpro/laravel-multistep-forms
 ```php
 <?php
 
-use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
+use BayAreaWebPro\MultiStepForms\MultiStepForm;
 
 // Render a view with data.
 return Form::make('my-form', [
@@ -39,26 +39,28 @@ return Form::make('my-form', [
     // Allow backwards navigation via get request. ?form_step=x
     ->canNavigateBack(true)
 
-    // Before x step validation...
-    ->beforeStep('*', function (Form $form) {
-       logger('before*', $form->toArray());
-    })
+    // Tap invokable Class __invoke(Form $form)
+    ->tap(new InvokableClass)
 
-    // After x step...
-    ->onStep('*', function (Form $form) {
-       logger('on*', $form->toArray());
+    // Before x step validation...
+    ->beforeStep(1, function (MultiStepForm $form) {
+        // Maybe return early or redirect?
+    })
+    // Before all step validation...
+    ->beforeStep('*', function (MultiStepForm $form) {
+        // Maybe return early or redirect?
     })
 
     // Validate Step 1
     ->addStep(1, [
         'rules' => ['name' => 'required'],
-        'messages' => ['name.required' => 'Your name is required silly.'],
+        'messages' => ['name.required' => 'Your name is required.'],
     ])
 
     // Validate Step 2
     ->addStep(2, [
-        'rules' => ['role' => 'required|string'],
-        'data' => ['roles' => Roles::forSelection()]
+        'rules' => ['role'  => 'required|string'],
+        'data'  => ['roles' => fn()=>Role::forSelection()] // Lazy Loaded Closure
     ])
 
     // Add non-validated step...
@@ -66,18 +68,12 @@ return Form::make('my-form', [
        'data' => ['message' => "Great Job, Your Done!"]
     ])
 
-    // Tap Invokable Class __invoke(Form $form)
-    ->tap(new InvokableClass)
-
     // After step validation...
-    ->onStep(3, function (Form $form) {
-       logger('onStep3', $form->toArray());
-       
-       if($form->request->get('submit') === 'reset'){
-            $form->reset();
-       }else{
-           return response('OK');
-       }
+    ->onStep(3, function (MultiStepForm $form) {
+        // Specific step, logic if needed.
+    })
+    ->onStep('*', function (MultiStepForm $form) {
+        // All steps, logic if needed.
     })
    
     // Modify data before saved to session after each step.
@@ -86,6 +82,12 @@ return Form::make('my-form', [
         // Transform non-serializable objects to paths, array data etc...
         return $data;
     })
+   
+    // Modify data before saved to session after each step.
+    ->onComplete(function(MultiStepForm $form) {
+    
+        // Final submission logic.
+    })
 ;
 ```
 
@@ -93,21 +95,22 @@ return Form::make('my-form', [
 
 ### Make New Instance
 
-Make a new instance of the builder class with optional view and data array.  You 
-should always set the `namespace` for the form session to avoid conflicts with 
-other parts of your application that use the session store. 
+Make a new instance of the builder class with optional view and data array. You
+should always set the `namespace` for the form session to avoid conflicts with
+other parts of your application that use the session store.
 
 * `GET` requests will load the form state and data for the saved current step or fallback to step 1.
 * `POST`,`PUT`,`PATCH` etc... will validate and process the request for any step and proceed to the next configured step.
-* Backwards navigation can be enabled via the `canNavigateBack` method.
+* `DELETE` will reset the session state and redirect back (blade), or return a `JsonResponse`.
+* Backwards navigation (via get param) can be enabled via the `canNavigateBack` method.
 
 ```php
 <?php
 
-use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
+use BayAreaWebPro\MultiStepForms\MultiStepForm;
 
-$form = Form::make('onboarding.start', [
-	'title' => 'Setup your account'
+$form = MultiStepForm::make('onboarding.start', [
+    'title' => 'Setup your account'
 ]);
 
 $form->namespaced('onboarding');
@@ -118,128 +121,219 @@ $form->canNavigateBack(true);
 
 ### Configure Steps
 
-Define the rules, messages and data for the step. Data will be merged 
-with any view data defined in the `make` method.
+Define the rules, messages and data for the step. Data will be merged
+with any view data defined in the `make` method and be included in the `JsonResponse`.
 
-**Use an array**: 
+** Use a `Closure` to lazy load data per-key.
+
+**Use an array**:
 
 ```php
-$form->addStep(1, [
+$form->addStep(2, [
     'rules' => [
-        'name' => 'required|string'
+        'role' => 'required|string'
     ],
     'messages' => [
-        'name.required' => 'Your name is required silly.'
+        'role.required' => 'Your name is required.'
     ],
     'data' => [
-        'placeholders' => [
-            'name' => 'Enter your name.'
-        ]
+        'roles' => fn() => Role::query()...,
     ],
 ])
 ```
 
-**Or use a class** that returns an array (recommended)
+**Or use an invokable class** (recommended)
 
 ```php
-$form->addStep(1, MyStep1::make());
+use BayAreaWebPro\MultiStepForms\MultiStepForm;
+
+class ProfileStep
+{
+    public function __construct(private int $step)
+    {
+        //
+    }
+    
+    public function __invoke(MultiStepForm $form) 
+    {
+        $form->addStep($this->step, [
+            'rules' => [
+                'name' => 'required|string'
+            ],
+            'messages' => [
+                'name.required' => 'Your name is required.'
+            ],
+            'data' => [
+                'placeholders' => [
+                    'name' => 'Enter your name.'
+                ]
+            ],
+        ]);
+    }
+}
+```
+
+```php
+$form->tap(new ProfileStep(1));
 ```
 
 ---
 
-### Before Step Hooks
+### BeforeStep / OnStep Hooks
 
-Define a callback to fired **before** a step has been validated.  Step Number or * for all.
+Define a callback to fired **before** a step has been validated. Step Number or * for all.
 
-> Return a response from this hook to return early before validation occurs.
+- Use a step integer, or asterisk (*) for all steps.
+- You can return a response from these hooks.
 
- `beforeStep($step, Closure $closure)`
+```php
+$form->beforeStep('*', function(MultiStepForm $form){
+    //
+});
+$form->onStep('*', function(MultiStepForm $form){
+    //
+});
+$form->onComplete(function(MultiStepForm $form){
+    //
+});
+```
 
----
+### Handle UploadedFiles
 
-### On Step Hooks
+Specify a callback used to transform UploadedFiles into paths.
 
-Define a callback to fired **after** a step has been validated.  Step Number or * for all.
+```php
+use Illuminate\Http\UploadedFile;
 
-> Return a response from this hook to return early before the form step is incremented.
+$form->beforeSave(function(array $data){
+    if($data['avatar'] instanceof UploadedFile){
+        $data['avatar'] = $data['avatar']->store('avatars');
+    }
+    return $data;
+});
+```
 
-`onStep($step, Closure $closure)`
+### Reset / Clear Form
 
----
+- Ajax: Submit a DELETE request to the form route.
+- Blade: Use an additional submit button that passes a boolean (truthy) value.
 
-### Helper Methods
+```
+<button type="submit" name="reset" value="1">Reset</button>
+```
 
-#### `stepConfig(?int $step = null)`
+### JSON Response Schema
 
-Get the current step config, or a specific step config.
+The response returned will have two properties:
 
-#### `getValue(string $key, $fallback = null)`
+```json
+{
+  "form": {
+    "form_step": 1
+  },
+  "data": {}
+}
+```
 
-Get a field value from the form state (session / old input) or fallback to a default.
+### Public Helper Methods
 
-#### `setValue(string $key, $value)`
 
-Set a field value from the session form state.
+#### stepConfig
+Get the current step configuration (default), or pass an integer for a specific step:
+```php
+$form->stepConfig(2): Collection
+```
 
-#### `beforeSave(Closure $callback)`
+#### getValue
+Get a field value (session / old input) or fallback:
 
-Will be passed the full array of validated data for modification before saving.  Callback MUST return an array to be saved.
+```php
+$form->getValue('name', 'John Doe'): mixed
+```
 
-#### `save(array $data)`
+#### setValue
+Set a field value and store in the session:
+```php
+$form->setValue('name', 'Jane Doe'): MultiStepForm
+```
 
-Merge and save key/values array into the session.
+#### save
+Merge and save key/values array directly to the session (does not fire `beforeSaveCallback`):
 
-#### `withData(array $data)`
+```php
+$form->save(['name' => 'Jane Doe']): MultiStepForm
+```
 
-Merge additional non-form data provided to views and responses.
-
-#### `currentStep()`
-
-Get the current saved step number.
-
-#### `requestedStep()`
-
-Get the requested step number.
-
-#### `isStep(int $step = 1)`
-
-Get the current step number.
-
-#### `isLastStep()`
-
-Determine if the current step the last step.
-
-#### `isPast(int $step, $truthy = true, $falsy = false)`
-
-Determine if the specified step is in the past and optionally pass through values (class helper).
-
-#### `isActive(int $step, $truthy = true, $falsy = false)`
-
-Determine if the specified step is active and optionally pass through values (class helper).
-
-#### `isFuture(int $step, $truthy = true, $falsy = false)`
-
-Determine if the specified step is in the future and optionally pass through values (class helper).
-
-#### `reset($data = [])`
+#### reset
 
 Reset the form state to defaults passing an optional array of data to seed.
 
-#### `tap(new Invokable)`
+```php
+$form->reset(['name' => 'Jane Doe']): MultiStepForm
+```
 
-Tap into the builder instance with invokeable classes that will be pass an instance of the form.
+#### withData
+Add additional non-form data to all views and responses:
 
-#### `renderResponse(array $data)`
+```php
+$form->withData(['date' => now()->toDateString()]);
+```
 
-Render the response manually / sidestep the validation and saving Logic.  Useful for additional routes that will update the session but do not require incrementing the current step.
+#### currentStep
+Get the current saved step number:
 
-#### `toCollection`
+```php
+$form->currentStep(): int
+```
 
-Get the array representation of the form state as a collection.
+#### requestedStep
+Get the incoming client-requested step number:
 
-#### `toArray`
+```php
+$form->requestedStep(): int
+```
 
-Get the array representation of the form state.
+#### isStep
+Is the current step the provided step:
+
+```php
+$form->isStep(3): bool
+```
+
+#### prevStepUrl
+Get the previous step url.
+
+```php
+$form->prevStepUrl(): string|null
+```
+
+#### lastStep
+Get the last step number:
+
+```php
+$form->lastStep(): int
+```
+
+#### isLastStep
+Is the current step the last step:
+
+```php
+$form->isLastStep(): bool
+```
+
+#### isPast,isActive,isFuture
+
+```php
+// Boolean Usage
+$form->isPast(2): bool
+$form->isActive(2): bool
+$form->isFuture(2): bool
+
+// Usage as HTML Class Helpers
+$form->isPast(2, 'truthy-class', 'falsy-class'): string
+$form->isActive(2, 'truthy-class', 'falsy-class'): string
+$form->isFuture(2, 'truthy-class', 'falsy-class'): string
+```
 
 --- 
 
@@ -257,17 +351,9 @@ $form->canNavigateBack(true);
 ```
 
 ```blade
-{{ $form->toCollection() }}
-{{ $myDataKey }}
-```
-
-```blade
-
 <form method="post" action="{{ route('submit') }}">
     <input type="hidden" name="form_step" value="{{ $form->currentStep() }}">
     @csrf
-
-
     <a
         href="{{ route('submit', ['form_step' => 1]) }}"
         class="{{ $form->isPast(1, 'text-blue-500', $form->isActive(1, 'font-bold', 'disabled')) }}">
@@ -315,7 +401,7 @@ $form->canNavigateBack(true);
     
     @if($form->isLastStep())
         <button type="submit" name="submit">Save</button>
-        <button type="submit" name="submit" value="reset">Reset</button>
+        <button type="submit" name="reset" value="1">Reset</button>
     @else
         <button type="submit" name="submit">Continue</button>
     @endif
@@ -325,33 +411,12 @@ $form->canNavigateBack(true);
 
 ### Vue Example
 
-Form state and data will be returned as JSON when no view is 
-specified or the request prefers JSON.  You can combine both 
+Form state and data will be returned as JSON when no view is
+specified or the request prefers JSON. You can combine both
 techniques to use Vue within blade as well.
 
-```php
-<?php
-
-use BayAreaWebPro\MultiStepForms\MultiStepForm as Form;
-
-$form = Form::make();
-$form->namespaced('onboarding');
-$form->canNavigateBack(true);
-$form->withData(['key' => $value]);
-```
-
-#### JSON Response Schema
-
-The response returned will have two properties: 
-
-```json
-{
-	"form": {},
-	"data": {}
-}
-```
-
 ```html
+
 <v-form action="{{ route('submit') }}">
     <template v-slot:default="{form, options, errors, reset, back}">
 
@@ -383,20 +448,20 @@ The response returned will have two properties:
 
         <template v-if="form.form_step === 1">
 
-           <v-input
-               name="name"
-               label="Name"
-               :errors="errors"
-               v-model="form.name">
-           </v-input>
+            <v-input
+                name="name"
+                label="Name"
+                :errors="errors"
+                v-model="form.name">
+            </v-input>
 
-           <v-select
-               name="name"
-               label="Name"
-               :errors="errors"
-               :options="options.roles"
-               v-model="form.role">
-           </v-select>
+            <v-select
+                name="name"
+                label="Name"
+                :errors="errors"
+                :options="options.roles"
+                v-model="form.role">
+            </v-select>
 
             <x-action>Continue</x-action>
         </template>
@@ -453,59 +518,59 @@ The response returned will have two properties:
 </v-form>
 ```
 
-
 #### Example Form Component
 
 ```vue
+
 <script>
-    export default {
-        name: 'Form',
-        props: ['action'],
-        data: () => ({
-            errors: {},
-            options: {},
-            form: {form_step: 1},
-        }),
-        methods: {
-            reset() {
-                this.form.submit = 'reset'
-                this.submit()
-            },
-            back(step) {
-                if(step < this.form.form_step){
-                    this.fetch({form_step: step})
-                }
-            },
-            fetch(params = {}) {
-                axios
-                    .get(this.action, {params})
-                    .then(this.onResponse)
-                    .catch(this.onError)
-            },
-            submit() {
-                axios
-                    .post(this.action, this.form)
-                    .then(this.onResponse)
-                    .catch(this.onError)
-            },
-            onError({response}) {
-                this.errors = (response.data.errors || response.data.exception)
-            },
-            onResponse({data}) {
-                this.errors = {}
-                this.options = (data.data || {})
-                this.form = (data.form || {})
-            },
-        },
-        created() {
-            this.fetch()
+  export default {
+    name: 'Form',
+    props: ['action'],
+    data: () => ({
+      errors: {},
+      options: {},
+      form: {form_step: 1},
+    }),
+    methods: {
+      reset() {
+        this.form.reset = 1
+        this.submit()
+      },
+      back(step) {
+        if (step < this.form.form_step) {
+          this.fetch({form_step: step})
         }
+      },
+      fetch(params = {}) {
+        axios
+            .get(this.action, {params})
+            .then(this.onResponse)
+            .catch(this.onError)
+      },
+      submit() {
+        axios
+            .post(this.action, this.form)
+            .then(this.onResponse)
+            .catch(this.onError)
+      },
+      onError({response}) {
+        this.errors = (response.data.errors || response.data.exception)
+      },
+      onResponse({data}) {
+        this.errors = {}
+        this.options = (data.data || {})
+        this.form = (data.form || {})
+      },
+    },
+    created() {
+      this.fetch()
     }
+  }
 </script>
 <template>
-    <form @submit.prevent="submit">
-        <slot :reset="reset" :back="back" :form="form" :options="options" :errors="errors"/>
-    </form>
+  <form @submit.prevent="submit">
+    <slot :reset="reset" :back="back" :form="form" :options="options" :errors="errors"/>
+  </form>
 </template>
 ```
 
@@ -513,69 +578,68 @@ The response returned will have two properties:
 
 ```vue
 <script>
-    export default {
-        name: "Input",
-        props:['name', 'label', 'value', 'errors'],
-        computed:{
-            field:{
-                get(){
-                    return this.value
-                },
-                set(val){
-                    return this.$emit('input', val)
-                }
-            }
+  export default {
+    name: "Input",
+    props: ['name', 'label', 'value', 'errors'],
+    computed: {
+      field: {
+        get() {
+          return this.value
+        },
+        set(val) {
+          return this.$emit('input', val)
         }
+      }
     }
+  }
 </script>
 <template>
-    <label class="block my-4">
+  <label class="block my-4">
         <span class="text-gray-700 font-bold">
             {{ label || name }}
         </span>
-        <input
-            type="text"
-            v-model="field"
-            class="form-input block w-full mt-2">
-        <div v-if="errors[name]" class="text-red-500 text-xs my-2">
-            {{ errors[name][0] }}
-        </div>
-    </label>
+    <input
+        type="text"
+        v-model="field"
+        class="form-input block w-full mt-2">
+    <div v-if="errors[name]" class="text-red-500 text-xs my-2">
+      {{ errors[name][0] }}
+    </div>
+  </label>
 </template>
 ```
-
 
 #### Example Select Component
 
 ```vue
 <script>
-    export default {
-        name: "Select",
-        props:['name', 'label', 'value', 'errors', 'options'],
-        computed:{
-            field:{
-                get(){
-                    return this.value
-                },
-                set(val){
-                    return this.$emit('input', val)
-                }
-            }
+  export default {
+    name: "Select",
+    props: ['name', 'label', 'value', 'errors', 'options'],
+    computed: {
+      field: {
+        get() {
+          return this.value
+        },
+        set(val) {
+          return this.$emit('input', val)
         }
+      }
     }
+  }
 </script>
 <template>
-    <label class="block">
-        <span class="text-gray-700">{{ label || name }}</span>
-        <select v-model="field" class="form-select mt-1 block w-full">
-            <option disabled value="">Please select one</option>
-            <option v-for="option in options" :value="option">
-                {{ option }}
-            </option>
-        </select>
-        <div v-if="errors[name]" class="text-red-500 text-xs my-2">
-            {{ errors[name][0] }}
-        </div>
-    </label>
+  <label class="block">
+    <span class="text-gray-700">{{ label || name }}</span>
+    <select v-model="field" class="form-select mt-1 block w-full">
+      <option disabled value="">Please select one</option>
+      <option v-for="option in options" :value="option">
+        {{ option }}
+      </option>
+    </select>
+    <div v-if="errors[name]" class="text-red-500 text-xs my-2">
+      {{ errors[name][0] }}
+    </div>
+  </label>
 </template>
 ```

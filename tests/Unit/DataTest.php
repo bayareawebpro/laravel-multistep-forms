@@ -21,6 +21,7 @@ class DataTest extends TestCase
             $form->addStep(1, [
                 'data' => [
                     'description' => 'test:step:data',
+                    'lazyStep'    => fn() => 'lazy:data',
                 ],
             ]);
         });
@@ -32,6 +33,7 @@ class DataTest extends TestCase
                 'title'       => 'test:global:data',
                 'description' => 'test:step:data',
                 'lazy'        => 'lazy:data',
+                'lazyStep'    => 'lazy:data',
                 'form',
             ]);
 

@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="vendor/autoload.php" backupGlobals="false" colors="true" processIsolation="false" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd" cacheDirectory=".phpunit.cache" backupStaticProperties="false">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="vendor/autoload.php" backupGlobals="false" colors="true" processIsolation="false" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" cacheDirectory=".phpunit.cache" backupStaticProperties="false">
   <coverage includeUncoveredFiles="false">
-    <include>
-      <directory suffix=".php">src/</directory>
-    </include>
     <report>
       <clover outputFile="build/clover.xml"/>
     </report>
@@ -19,8 +16,14 @@
   <php>
     <env name="APP_KEY" value="AckfSECXIvnK5r28GVIWUAxmbBSjTsm1"/>
     <env name="APP_ENV" value="testing"/>
+    <env name="APP_DEBUG" value="true"/>
     <env name="APP_URL" value="http://localhost"/>
     <env name="DB_DATABASE" value=":memory:"/>
     <env name="DB_CONNECTION" value="sqlite"/>
   </php>
+  <source>
+    <include>
+      <directory suffix=".php">src/</directory>
+    </include>
+  </source>
 </phpunit>

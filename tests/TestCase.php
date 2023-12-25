@@ -1,7 +1,8 @@
 <?php
-namespace BayAreaWebPro\MultiStepForms\Tests;
+namespace BayAreaWebPro\MultiStepFormsTests;
 
-use Illuminate\Support\Str;
+use BayAreaWebPro\MultiStepFormsTests\Fixtures\Invoke;
+use BayAreaWebPro\MultiStepForms\MultiStepForm;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -26,6 +27,33 @@ abstract class TestCase extends BaseTestCase
         return [];
     }
 
+    protected function setupForm(\Closure $closure)
+    {
+        $form = MultiStepForm::make('form', [
+            'title' => 'Test'
+        ])->namespaced('test');
+
+        call_user_func($closure, $form);
+
+        $this->app->instance(MultiStepForm::class, $form);
+
+    }
+
+    /**
+     * Define routes setup.
+     *
+     * @param  \Illuminate\Routing\Router  $router
+     * @return void
+     */
+    protected function defineRoutes($router)
+    {
+        $router->any('multi-step-form', function () {
+            return $this->app->make(MultiStepForm::class);
+        })
+        ->middleware('web')
+        ->name('test');
+    }
+
     /**
      * Setup the test environment.
      * @return void
@@ -36,8 +64,5 @@ abstract class TestCase extends BaseTestCase
         $this->app['config']->set('view.paths', [
             __DIR__.'/Fixtures/views'
         ]);
-        $this->app['config']->set('app.debug', true);
-        $this->app['config']->set('app.key', Str::random(32));
-        require __DIR__.'/Fixtures/routes.php';
     }
 }

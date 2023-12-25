@@ -1,89 +1,100 @@
 <?php declare(strict_types=1);
 
-namespace BayAreaWebPro\MultiStepForms\Tests\Unit;
+namespace BayAreaWebPro\MultiStepFormsTests\Unit;
 
-use BayAreaWebPro\MultiStepForms\Tests\TestCase;
+use BayAreaWebPro\MultiStepForms\MultiStepForm;
+use BayAreaWebPro\MultiStepFormsTests\Fixtures\Invoke;
+use BayAreaWebPro\MultiStepFormsTests\TestCase;
 
 class HooksTest extends TestCase
 {
+
     public function test_before_save()
     {
-        $this->withSession(['test' => []]);
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->addStep(1);
+            $form->addStep(2);
+            $form->beforeSave(function (array $data){
+                $data['saved'] = true;
+                return $data;
+            });
+        });
+
         $this
-            ->json('POST', route('hooks'), [
-                'form_step' => 1,
-            ])
-            ->assertOk()
-            ->assertSessionHas('test.before_save');
+            ->post(route('test', ['form_step' => 1]))
+            ->assertSessionHasAll([
+                'test.saved' => true
+            ]);
     }
 
-    public function test_tap()
+    public function test_invokable_configuration()
     {
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->tap(new Invoke);
+        });
         $this
-            ->json('GET', route('hooks'), [
-                'invoke' => true,
-            ])
-            ->assertOk()
-            ->assertSessionHas('test.invoke');
+            ->post(route('test', ['form_step' => 1]))
+            ->assertSessionHasAll([
+                'test.invoked' => true
+            ]);
+
     }
 
-    public function test_wildcard_before()
-    {
-        $this
-            ->json('POST', route('hooks'), [
-                'before*' => true,
-            ])
-            ->assertSee('before*')
-            ->assertOk();
-    }
 
-    public function test_wildcard_on()
+    public function test_hook_called_and_can_return_response()
     {
+        //before:any
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->beforeStep('*', function (MultiStepForm $form) {
+                return response('test');
+            });
+        });
         $this
-            ->json('POST', route('hooks'), [
-                'on*'       => true,
-                'form_step' => 1,
-            ])
-            ->assertSee('on*')
-            ->assertOk();
-    }
+            ->post(route('test', ['form_step' => 1]))
+            ->assertContent('test');
 
-    public function test_step_before()
-    {
-        $this->startSession();
 
+        //before:step
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->beforeStep(1, function (MultiStepForm $form) {
+                return response('test');
+            });
+        });
         $this
-            ->json('POST', route('hooks'), [
-                'form_step' => 1,
-                'on1'       => true,
-            ])
-            ->assertDontSee('before1')
-            ->assertSee('on1')
-            ->assertOk();
-        $this
-            ->json('POST', route('hooks'), [
-                'before1'   => true,
-                'form_step' => 1
-            ])
-            ->assertSee('before1')
-            ->assertOk();
-    }
+            ->post(route('test', ['form_step' => 1]))
+            ->assertContent('test');
 
-    public function test_step_before2()
-    {
-        $this->withSession(['test' => ['form_step' => 1]]);
+
+        //on:any
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->onStep('*', function (MultiStepForm $form) {
+                return response('test');
+            });
+        });
         $this
-            ->json('POST', route('hooks'), [
-                'form_step' => 2
-            ])
-            ->assertDontSee('before2')
-            ->assertOk();
+            ->post(route('test', ['form_step' => 1]))
+            ->assertContent('test');
+
+        //on:step
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->onStep(1, function (MultiStepForm $form) {
+                return response('test');
+            });
+        });
         $this
-            ->json('POST', route('hooks'), [
-                'before2'   => true,
-                'form_step' => 2
-            ])
-            ->assertSee('before2')
-            ->assertOk();
+            ->post(route('test', ['form_step' => 1]))
+            ->assertContent('test');
+
+        //on:completed
+        $this->setupForm(function (MultiStepForm $form) {
+            $form->addStep(1);
+            $form->onComplete(function (MultiStepForm $form) {
+                return response('test');
+            });
+        });
+        $this
+            ->post(route('test', ['form_step' => 1]))
+            ->assertContent('test');
+
     }
 }

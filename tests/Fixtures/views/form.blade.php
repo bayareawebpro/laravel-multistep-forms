@@ -1,28 +1,22 @@
-{{ $title }}
 
-<form method="post" action="{{ route('submit') }}">
+{{ $title ?? null }}
+
+{{ $description ?? null }}
+
+{{ $form->prevStepUrl() }}
+
+<form method="post" action="{{ route('test') }}">
     @csrf
-    <input
-            type="hidden"
-            name="form_step"
-            value="{{ $form->currentStep() }}">
+    <input type="hidden" name="form_step" value="{{ $form->currentStep() }}">
 
     @switch($form->currentStep())
         @case(1)
-        <label>Name</label>
-        <input
-                type="text"
-                name="name"
-                value="{{ $form->getValue('name') }}">
-        {{ $errors->first('name') }}
+            <label>Name <input type="text" name="name" value="{{ $form->getValue('name') }}"></label>
+            {{ $errors->first('name') }}
         @break
         @case(2)
-        <label>Role</label>
-        <input
-                type="text"
-                name="role"
-                value="{{ $form->getValue('role') }}">
-        {{ $errors->first('role') }}
+             <label>Role <input type="text" name="role" value="{{ $form->getValue('role') }}"></label>
+            {{ $errors->first('role') }}
         @break
         @case(3)
         Name: {{ $form->getValue('name') }}<br>

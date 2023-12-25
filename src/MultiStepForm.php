@@ -4,11 +4,13 @@ namespace BayAreaWebPro\MultiStepForms;
 
 use Closure;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 
 use Illuminate\Support\Collection;
@@ -17,7 +19,6 @@ use Illuminate\Session\Store as Session;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Contracts\View\View as ViewContract;
 
 class MultiStepForm implements Responsable, Arrayable
 {
@@ -32,6 +33,7 @@ class MultiStepForm implements Responsable, Arrayable
     protected bool $canGoBack = false;
     protected string $namespace = 'multistep-form';
     protected ?Closure $beforeSaveCallback = null;
+    protected ?Closure $completeCallback = null;
 
     public function __construct(Request $request, Session $session, array $data = [], ?string $view = null)
     {
@@ -52,71 +54,10 @@ class MultiStepForm implements Responsable, Arrayable
         ]);
     }
 
-    protected function handleRequest(): Response|ViewContract|JsonResponse|RedirectResponse
-    {
-        $this->setupSession();
-
-        if (!$this->request->isMethod('GET')) {
-
-            if ($response = (
-                $this->handleBefore('*') ??
-                $this->handleBefore($this->requestedStep())
-            )) {
-                return $response;
-            }
-
-            if (!$this->wasReset) {
-
-                $this->handleSave($this->validate());
-
-                if ($response = (
-                    $this->handleAfter('*') ??
-                    $this->handleAfter($this->currentStep())
-                )) {
-                    return $response;
-                }
-
-                $this->nextStep();
-
-            }
-        }
-
-        return $this->renderResponse();
-    }
-
-    public function renderResponse(): ViewContract|JsonResponse|RedirectResponse
-    {
-        $shouldGoBack = $this->shouldNavigateBack();
-
-        if (!$this->usesViews() || $this->needsJsonResponse()) {
-            return new JsonResponse((object)[
-                'data' => $this->getData(),
-                'form' => $this->toArray(),
-            ]);
-        }
-
-        if ($shouldGoBack) {
-            return redirect($this->request->path());
-        }
-
-        if (!$this->request->isMethod('GET')) {
-            return redirect()->back();
-        }
-
-        return View::make($this->view, $this->getData([
-            'form' => $this,
-        ]));
-    }
-
     public function withData(array $data = []): self
     {
         $this->data = array_merge($this->data, $data);
         return $this;
-    }
-
-    protected function getData(array $data = []): array
-    {
-        return array_merge($this->data, $this->stepConfig()->get('data', []), $data);
     }
 
     protected function validate(): array
@@ -125,17 +66,166 @@ class MultiStepForm implements Responsable, Arrayable
 
         return $this->request->validate(
             array_merge($step->get('rules', []), [
-                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->lastStep()))],
+                'form_step' => ['required', 'numeric', Rule::in(range(1, $this->getNextAccessibleStep()))],
             ]),
             $step->get('messages', [])
         );
     }
 
-    public function toResponse($request = null)
+    protected function getNextAccessibleStep(): int
+    {
+        if ($this->isFuture($nextStep = $this->currentStep() + 1)) {
+            return $nextStep;
+        }
+        return $this->currentStep();
+    }
+
+    protected function handleShow(): Response|JsonResponse
+    {
+        if ($this->usesViews() && !$this->needsJsonResponse()) {
+
+            return new Response(View::make($this->view, $this->getData([
+                'form' => $this,
+            ])));
+        }
+
+        return $this->getJsonResponse();
+    }
+
+    protected function handleDelete(): RedirectResponse|JsonResponse
+    {
+        $this->reset();
+
+        return $this->getModificationResponse();
+    }
+
+    protected function handleModification(): mixed
+    {
+        $callbackResponse = (
+            $this->handleBefore('*') ??
+            $this->handleBefore($this->requestedStep())
+        );
+
+        if ($callbackResponse) {
+            return $callbackResponse;
+        }
+
+        if ($this->wasReset) {
+            return $this->getModificationResponse();
+        }
+
+        $this->handleSave($this->validate());
+
+        $afterResponse = (
+            $this->handleAfter('*') ??
+            $this->handleAfter($this->currentStep())
+        );
+
+        $isLastStep = $this->isLastStep();
+
+        if (!$isLastStep) {
+            $this->incrementStep();
+        }
+
+        if ($afterResponse) {
+            return $afterResponse;
+        }
+
+        if ($isLastStep) {
+            $completedCallback = $this->handleCompleteCallback();
+
+            $this->reset();
+
+            if ($completedCallback) {
+                return $completedCallback;
+            }
+        }
+
+        return $this->getModificationResponse();
+    }
+
+    public function toResponse($request = null): mixed
     {
         $this->request = ($request ?? $this->request);
 
-        return $this->handleRequest();
+        $this->setupSession();
+
+        return match (true) {
+            $this->isDeleteRequest() => $this->handleDelete(),
+            $this->isModificationRequest() => $this->handleModification(),
+            $this->isNavigationRequest() => $this->handleNavigation(),
+            default => $this->handleShow(),
+        };
+    }
+
+    protected function getData(array $data = []): array
+    {
+        return [...$data, ...Collection::make($this->data)
+            ->merge($this->stepConfig()->get('data', []))
+            ->map(fn($value)=>is_callable($value) ? call_user_func($value, $this) : $value)];
+    }
+
+    protected function isShowRequest(): bool
+    {
+        return $this->request->isMethod('GET');
+    }
+
+    protected function isModificationRequest(): bool
+    {
+        return in_array($this->request->method(), [
+            'POST', 'PUT', 'PATCH'
+        ]);
+    }
+
+    protected function getModificationResponse(): RedirectResponse|JsonResponse
+    {
+        if ($this->usesViews() && !$this->needsJsonResponse()) {
+            return Redirect::back();
+        }
+
+        return $this->getJsonResponse();
+    }
+
+    protected function isDeleteRequest(): bool
+    {
+        return $this->request->isMethod('DELETE') || $this->request->boolean('reset');
+    }
+
+    protected function getJsonResponse(): JsonResponse
+    {
+        return new JsonResponse((object)[
+            'data' => $this->getData(),
+            'form' => $this->toCollection(),
+        ]);
+    }
+
+    protected function isNavigationRequest(): bool
+    {
+        return
+            $this->isShowRequest() &&
+            $this->request->filled('form_step') &&
+            $this->requestedStep() !== $this->currentStep();
+    }
+
+    protected function handleNavigation(): RedirectResponse|JsonResponse
+    {
+        if($this->isPreviousStepRequest()){
+            $this->setValue('form_step', $this->requestedStep());
+        }
+
+        if($this->usesViews() && !$this->needsJsonResponse()){
+            return Redirect::back();
+        }
+
+        return $this->getJsonResponse();
+    }
+
+    protected function isPreviousStepRequest(): bool
+    {
+        return (
+            $this->canGoBack &&
+            $this->isPast($this->requestedStep())
+        );
     }
 
     public function canNavigateBack(bool $enabled = true): self
@@ -144,38 +234,19 @@ class MultiStepForm implements Responsable, Arrayable
         return $this;
     }
 
-    protected function shouldNavigateBack(): bool
+    protected function needsJsonResponse(): bool
     {
-        if (
-            $this->canGoBack &&
-            $this->request->isMethod('GET') &&
-            $this->request->filled('form_step')
-        ) {
-            $step = $this->requestedStep();
-            if ($this->steps->has($step) && $this->isPast($step)) {
-                $this->setValue('form_step', $step);
-            }
-            return true;
-        }
-        return false;
+        return $this->request->isJson() || $this->request->wantsJson() || $this->request->expectsJson() || $this->request->isXmlHttpRequest();
     }
 
-    public function needsJsonResponse(): bool
-    {
-        return $this->request->wantsJson() || $this->request->isXmlHttpRequest();
-    }
-
-    public function usesViews(): bool
+    protected function usesViews(): bool
     {
         return is_string($this->view);
     }
 
-    public function isActive(int $step, $active = true, $fallback = false)
+    public function isActive(int $step, $active = true, $fallback = false): mixed
     {
-        if ($this->isStep($step)) {
-            return $active;
-        }
-        return $fallback;
+        return $this->isStep($step) ? $active : $fallback;
     }
 
     public function isFuture(int $step, $active = true, $fallback = false)
@@ -192,16 +263,6 @@ class MultiStepForm implements Responsable, Arrayable
             return $active;
         }
         return $fallback;
-    }
-
-    public function toArray(): array
-    {
-        return $this->session->get($this->namespace, []);
-    }
-
-    public function toCollection(): Collection
-    {
-        return Collection::make($this->toArray());
     }
 
     protected function setupSession(): void
@@ -267,21 +328,34 @@ class MultiStepForm implements Responsable, Arrayable
         return $this->currentStep() === $step;
     }
 
-    public function getValue(string $key, $fallback = null)
+    public function getValue(string $key, $fallback = null): mixed
     {
         return $this->session->get("{$this->namespace}.$key", $this->session->getOldInput($key, $fallback));
     }
 
-    public function setValue(string $key, $value): self
+    public function hasValue(string $key): bool
+    {
+        return $this->session->has("{$this->namespace}.$key");
+    }
+
+    public function setValue(string $key, mixed $value): self
     {
         $this->session->put("{$this->namespace}.$key", $value);
 
         return $this;
     }
 
-    protected function nextStep(): self
+    public function prevStepUrl(): ?string
     {
-        if (!$this->wasReset && !$this->isStep($this->lastStep())) {
+        if (!$this->canGoBack || !$this->isPast($prevStep = ($this->currentStep() - 1))) {
+            return null;
+        }
+        return url($this->request->fullUrlWithQuery(['form_step' => $prevStep]));
+    }
+
+    protected function incrementStep(): self
+    {
+        if (!$this->isStep($this->lastStep())) {
             $this->setValue('form_step', 1 + $this->requestedStep());
         }
 
@@ -321,7 +395,6 @@ class MultiStepForm implements Responsable, Arrayable
         $this->session->put($this->namespace, array_merge(
             $this->session->get($this->namespace, []), $data
         ));
-
         return $this;
     }
 
@@ -329,21 +402,46 @@ class MultiStepForm implements Responsable, Arrayable
     {
         $this->session->put($this->namespace, array_merge($data, ['form_step' => 1]));
         $this->wasReset = true;
-
         return $this;
     }
 
-    protected function handleBefore(int|string $key)
+    protected function handleBefore(int|string $key): mixed
     {
         if ($callback = $this->before->get($key)) {
-            return $callback($this);
+            return call_user_func($callback, $this);
         }
+        return null;
     }
 
-    protected function handleAfter(int|string $key)
+    protected function handleAfter(int|string $key): mixed
     {
         if ($callback = $this->after->get($key)) {
-            return $callback($this);
+            return call_user_func($callback, $this);
         }
+        return null;
+    }
+
+    public function onComplete(Closure $callback): self
+    {
+        $this->completeCallback = $callback;
+        return $this;
+    }
+
+    protected function handleCompleteCallback(): mixed
+    {
+        if (is_callable($this->completeCallback)) {
+            return call_user_func($this->completeCallback, $this);
+        }
+        return null;
+    }
+
+    public function toCollection(): Collection
+    {
+        return Collection::make($this->session->get($this->namespace, []));
+    }
+
+    public function toArray(): array
+    {
+        return $this->toCollection()->toArray();
     }
 }

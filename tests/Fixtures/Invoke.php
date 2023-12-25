@@ -1,15 +1,14 @@
 <?php
 
-namespace BayAreaWebPro\MultiStepForms\Tests\Fixtures;
+namespace BayAreaWebPro\MultiStepFormsTests\Fixtures;
 
 use BayAreaWebPro\MultiStepForms\MultiStepForm;
 
 class Invoke
 {
-    public function __invoke(MultiStepForm $instance)
+    public function __invoke(MultiStepForm $form): void
     {
-        if($instance->request->filled('invoke')){
-            $instance->setValue('invoke', true);
-        }
+        $form->addStep(1);
+        $form->onStep(1, fn()=>$form->setValue('invoked', true));
     }
 }

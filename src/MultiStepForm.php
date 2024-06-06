@@ -3,22 +3,17 @@
 namespace BayAreaWebPro\MultiStepForms;
 
 use Closure;
-
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\Rule;
-
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\View;
-use Illuminate\Session\Store as Session;
-
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Session\Store as Session;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\View;
+use Illuminate\Validation\Rule;
 
 class MultiStepForm implements Responsable, Arrayable
 {
@@ -162,7 +157,7 @@ class MultiStepForm implements Responsable, Arrayable
     {
         return [...$data, ...Collection::make($this->data)
             ->merge($this->stepConfig()->get('data', []))
-            ->map(fn($value)=>is_callable($value) ? call_user_func($value, $this) : $value)];
+            ->map(fn($value) => is_callable($value) ? call_user_func($value, $this) : $value)];
     }
 
     protected function isShowRequest(): bool
@@ -209,11 +204,11 @@ class MultiStepForm implements Responsable, Arrayable
 
     protected function handleNavigation(): RedirectResponse|JsonResponse
     {
-        if($this->isPreviousStepRequest()){
+        if ($this->isPreviousStepRequest()) {
             $this->setValue('form_step', $this->requestedStep());
         }
 
-        if($this->usesViews() && !$this->needsJsonResponse()){
+        if ($this->usesViews() && !$this->needsJsonResponse()) {
             return Redirect::back();
         }
 

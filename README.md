@@ -365,7 +365,7 @@ $form->namespaced('onboarding');
 $form->canNavigateBack(true);
 ```
 
-```bladehtml
+```blade
 <form method="post" action="{{ route('submit') }}">
     <input type="hidden" name="form_step" value="{{ $form->currentStep() }}">
     @csrf

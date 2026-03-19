@@ -198,8 +198,7 @@ class MultiStepForm implements Responsable, Arrayable
     {
         return
             $this->isShowRequest() &&
-            $this->request->filled('form_step') &&
-            $this->requestedStep() !== $this->currentStep();
+            $this->request->filled('form_step');
     }
 
     protected function handleNavigation(): RedirectResponse|JsonResponse
@@ -310,7 +309,7 @@ class MultiStepForm implements Responsable, Arrayable
 
     public function requestedStep(): int
     {
-        return (int)$this->request->get("form_step", 1);
+        return (int)$this->request->input("form_step", 1);
     }
 
     public function stepConfig(?int $step = null): Collection

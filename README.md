@@ -102,7 +102,7 @@ should always set the `namespace` for the form session to avoid conflicts with
 other parts of your application that use the session store.
 
 * `GET` requests will load the form state and data for the saved current step or fallback to step 1.
-* `POST`,`PUT`,`PATCH` etc... will validate and process the request for any step and proceed to the next configured step.
+* `POST`,`PUT`,`PATCH` etc... will validate and process the request for any step and proceed to the next step.
 * `DELETE` will reset the session state and redirect back (blade), or return a `JsonResponse`.
 * Backwards navigation (via get param) can be enabled via the `canNavigateBack` method.
 

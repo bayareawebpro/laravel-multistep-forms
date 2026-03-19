@@ -23,6 +23,8 @@ composer require bayareawebpro/laravel-multistep-forms
 
 ### Example Usage
 
+
+
 ```php
 <?php
 
@@ -237,14 +239,16 @@ The response returned will have two properties:
 
 ### Public Helper Methods
 
-
 #### stepConfig
+
 Get the current step configuration (default), or pass an integer for a specific step:
+
 ```php
 $form->stepConfig(2): Collection
 ```
 
 #### getValue
+
 Get a field value (session / old input) or fallback:
 
 ```php
@@ -252,12 +256,15 @@ $form->getValue('name', 'John Doe'): mixed
 ```
 
 #### setValue
+
 Set a field value and store in the session:
+
 ```php
 $form->setValue('name', 'Jane Doe'): MultiStepForm
 ```
 
 #### save
+
 Merge and save key/values array directly to the session (does not fire `beforeSaveCallback`):
 
 ```php
@@ -273,6 +280,7 @@ $form->reset(['name' => 'Jane Doe']): MultiStepForm
 ```
 
 #### withData
+
 Add additional non-form data to all views and responses:
 
 ```php
@@ -280,6 +288,7 @@ $form->withData(['date' => now()->toDateString()]);
 ```
 
 #### currentStep
+
 Get the current saved step number:
 
 ```php
@@ -287,6 +296,7 @@ $form->currentStep(): int
 ```
 
 #### requestedStep
+
 Get the incoming client-requested step number:
 
 ```php
@@ -294,6 +304,7 @@ $form->requestedStep(): int
 ```
 
 #### isStep
+
 Is the current step the provided step:
 
 ```php
@@ -301,6 +312,7 @@ $form->isStep(3): bool
 ```
 
 #### prevStepUrl
+
 Get the previous step url.
 
 ```php
@@ -308,6 +320,7 @@ $form->prevStepUrl(): string|null
 ```
 
 #### lastStep
+
 Get the last step number:
 
 ```php
@@ -315,6 +328,7 @@ $form->lastStep(): int
 ```
 
 #### isLastStep
+
 Is the current step the last step:
 
 ```php
@@ -339,7 +353,8 @@ $form->isFuture(2, 'truthy-class', 'falsy-class'): string
 
 ### Blade Example
 
-Data will be injected into the view as well as the form itself allowing you to access the form values and other helper methods.
+Data will be injected into the view as well as the form itself allowing you to access the form values and other helper
+methods.
 
 ```php
 <?php
@@ -350,7 +365,7 @@ $form->namespaced('onboarding');
 $form->canNavigateBack(true);
 ```
 
-```blade
+```bladehtml
 <form method="post" action="{{ route('submit') }}">
     <input type="hidden" name="form_step" value="{{ $form->currentStep() }}">
     @csrf
@@ -417,53 +432,34 @@ techniques to use Vue within blade as well.
 
 ```html
 
-<v-form action="{{ route('submit') }}">
+<v-form route="{{ route('onboarding') }}">
     <template v-slot:default="{form, options, errors, reset, back}">
 
-        <h1 class="font-black my-3">
-            @{{ options.title }}
-        </h1>
-
-        <p v-if="options.message" role="alert" class="bg-gray-200 p-4 my-5 font-bold text-blue-500">
-            @{{ options.message }}
-        </p>
-
-        <template v-if="form.form_step < 4">
+        <nav aria-label="Steps" v-if="form.form_step < 4">
             <a
                 @click="back(1)"
-                :class="{'text-blue-500': form.form_step > 1, 'font-bold': form.form_step === 1}">
+                :class="{'text-gray-500': form.form_step > 1, 'text-blue-500': form.form_step === 1}">
                 Step 1
             </a>
             <a
                 @click="back(2)"
-                :class="{'text-blue-500': form.form_step > 2, 'font-bold': form.form_step === 2}">
+                :class="{'text-gray-500': form.form_step > 2, 'text-blue-500': form.form_step === 2}">
                 Step 2
             </a>
             <a
                 @click="back(3)"
-                :class="{'text-blue-500': form.form_step > 3, 'font-bold': form.form_step === 3}">
+                :class="{'text-gray-500': form.form_step > 3, 'text-blue-500': form.form_step === 3}">
                 Step 3
             </a>
-        </template>
+        </nav>
 
         <template v-if="form.form_step === 1">
-
             <v-input
                 name="name"
                 label="Name"
                 :errors="errors"
                 v-model="form.name">
             </v-input>
-
-            <v-select
-                name="name"
-                label="Name"
-                :errors="errors"
-                :options="options.roles"
-                v-model="form.role">
-            </v-select>
-
-            <x-action>Continue</x-action>
         </template>
 
         <template v-if="form.form_step === 2">
@@ -473,47 +469,32 @@ techniques to use Vue within blade as well.
                 :errors="errors"
                 v-model="form.email">
             </v-input>
+        </template>
+
+        <template v-if="form.form_step === 3">
             <v-input
                 name="phone"
                 label="Phone"
                 :errors="errors"
                 v-model="form.phone">
             </v-input>
-            <x-action>Continue</x-action>
-        </template>
-
-        <template v-if="form.form_step === 3">
-            <v-input
-                name="bio"
-                label="Bio"
-                :errors="errors"
-                v-model="form.bio">
-            </v-input>
-            <v-input
-                name="notify"
-                label="Notify"
-                :errors="errors"
-                v-model="form.notify">
-            </v-input>
-            <x-action>Continue</x-action>
         </template>
 
         <template v-if="form.form_step === 4">
-            <h3>Review Submission</h3>
-            <p>
-                Name: @{{ form.name }}<br>
-                Role: @{{ form.role }}<br>
-                Email: @{{ form.email }}<br>
-                Phone: @{{ form.phone }}<br>
-            </p>
-            <x-action>Save</x-action>
-            <x-action @click="reset">Reset</x-action>
+            <ul>
+                <li>Name: @{{ form.name }}</li>
+                <li>Email: @{{ form.email }}</li>
+                <li>Phone: @{{ form.phone }}</li>
+            </ul>
         </template>
 
-        <template v-if="form.form_step === 5">
-            <x-action>Done</x-action>
+        <template v-if="form.form_step <= 4">
+            <button type="submit">Save</button>
+            <button type="button" @click="reset">Reset</button>
         </template>
-
+        <template v-else>
+            <button type="submit">Done</button>
+        </template>
     </template>
 </v-form>
 ```
@@ -524,8 +505,8 @@ techniques to use Vue within blade as well.
 
 <script>
   export default {
-    name: 'Form',
-    props: ['action'],
+    name: 'v-form',
+    props: ['route'],
     data: () => ({
       errors: {},
       options: {},
@@ -543,18 +524,18 @@ techniques to use Vue within blade as well.
       },
       fetch(params = {}) {
         axios
-            .get(this.action, {params})
+            .get(this.route, {params})
             .then(this.onResponse)
             .catch(this.onError)
       },
       submit() {
         axios
-            .post(this.action, this.form)
+            .post(this.route, this.form)
             .then(this.onResponse)
             .catch(this.onError)
       },
       onError({response}) {
-        this.errors = (response.data.errors || response.data.exception)
+        this.errors = response.data.errors
       },
       onResponse({data}) {
         this.errors = {}
@@ -569,7 +550,13 @@ techniques to use Vue within blade as well.
 </script>
 <template>
   <form @submit.prevent="submit">
-    <slot :reset="reset" :back="back" :form="form" :options="options" :errors="errors"/>
+    <slot
+        :form="form"
+        :errors="errors"
+        :options="options"
+        :back="back"
+        :reset="reset"
+    />
   </form>
 </template>
 ```
@@ -577,69 +564,33 @@ techniques to use Vue within blade as well.
 #### Example Input Component
 
 ```vue
+
 <script>
   export default {
-    name: "Input",
-    props: ['name', 'label', 'value', 'errors'],
+    name: "v-form-input",
+    emits: ['update:modelValue'],
+    props: ['name', 'modelValue', 'errors'],
     computed: {
       field: {
         get() {
-          return this.value
+          return this.modelValue
         },
         set(val) {
-          return this.$emit('input', val)
+          return this.$emit('update:modelValue', val)
         }
       }
     }
   }
 </script>
 <template>
-  <label class="block my-4">
-        <span class="text-gray-700 font-bold">
-            {{ label || name }}
-        </span>
-    <input
-        type="text"
-        v-model="field"
-        class="form-input block w-full mt-2">
-    <div v-if="errors[name]" class="text-red-500 text-xs my-2">
-      {{ errors[name][0] }}
-    </div>
-  </label>
-</template>
-```
-
-#### Example Select Component
-
-```vue
-<script>
-  export default {
-    name: "Select",
-    props: ['name', 'label', 'value', 'errors', 'options'],
-    computed: {
-      field: {
-        get() {
-          return this.value
-        },
-        set(val) {
-          return this.$emit('input', val)
-        }
-      }
-    }
-  }
-</script>
-<template>
-  <label class="block">
-    <span class="text-gray-700">{{ label || name }}</span>
-    <select v-model="field" class="form-select mt-1 block w-full">
-      <option disabled value="">Please select one</option>
-      <option v-for="option in options" :value="option">
-        {{ option }}
-      </option>
-    </select>
-    <div v-if="errors[name]" class="text-red-500 text-xs my-2">
-      {{ errors[name][0] }}
-    </div>
-  </label>
+  <input
+      type="text"
+      :name="name"
+      v-model="field"
+      class="form-input"
+  />
+  <div v-if="errors[name]">
+    {{ errors[name][0] }}
+  </div>
 </template>
 ```
